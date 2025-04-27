@@ -453,17 +453,17 @@ else:
 
 # Display results progressively or when completed
 # --- DEBUG: Show the raw result object ---
-if st.session_state.get("translation_result"):
-    st.subheader("DEBUG: Raw Translation Result Object")
-    try:
-        # Convert dataclass to dict before passing to st.json
-        result_dict = dataclasses.asdict(st.session_state.translation_result)
-        st.json(result_dict)
-    except Exception as e:
-        st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
-        # Fallback: print the object representation
-        st.text(repr(st.session_state.translation_result))
-    st.divider()
+# if st.session_state.get("translation_result"):
+#     st.subheader("DEBUG: Raw Translation Result Object")
+#     try:
+#         # Convert dataclass to dict before passing to st.json
+#         result_dict = dataclasses.asdict(st.session_state.translation_result)
+#         st.json(result_dict)
+#     except Exception as e:
+#         st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
+#         # Fallback: print the object representation
+#         st.text(repr(st.session_state.translation_result))
+#     st.divider()
 # --- END DEBUG ---
 
 if st.session_state.translation_result:
