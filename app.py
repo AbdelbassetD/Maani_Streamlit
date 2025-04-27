@@ -281,11 +281,26 @@ if translation_orchestrator:
         word_count = len(input_text_for_analysis.split())
         st.caption(f"{char_count} characters | {word_count} words")
 
-        # Update arabic_text_input variable for use in translation trigger
         # It reads directly from the session state bound to the text_area
         arabic_text_input = st.session_state.arabic_input
 
-        translate_button = st.button("Translate & Analyze", type="primary", use_container_width=True, disabled=st.session_state.get('is_translating', False))
+        # Only set state on button click
+        translate_button_clicked = st.button("Translate & Analyze", type="primary", use_container_width=True, disabled=st.session_state.get('is_translating', False))
+        if translate_button_clicked:
+            if arabic_text_input:
+                # Set state to trigger translation run on rerun
+                st.session_state.is_translating = True
+                st.session_state.text_to_process = arabic_text_input # Store the text
+                st.session_state.feedback_submitted = False
+                st.session_state.translation_result = None
+                st.session_state.current_step = "not_started"
+                st.session_state.progress_message = "Starting translation..."
+                # Clear display areas immediately
+                results_area.empty()
+                progress_area.empty()
+                st.rerun() # Trigger rerun to start translation
+            else:
+                st.warning("Please enter text to translate.")
 
 else:
     # Display a clear error if services couldn't initialize
@@ -326,97 +341,56 @@ def handle_progress(step: TranslationStep, partial_result: Optional[TranslationR
     if partial_result:
         st.session_state.translation_result = partial_result
 
-# --- Translation Trigger --- #
-if translate_button and arabic_text_input and not st.session_state.is_translating:
-    # ---> Explicitly clear previous results/progress immediately <---
-    results_area.empty()
-    progress_area.empty()
-
-    # Set state for new translation run
-    st.session_state.is_translating = True
-    st.session_state.feedback_submitted = False # Reset feedback on new translation
-    st.session_state.translation_result = None # Reset previous results
-    st.session_state.current_step = "not_started"
-    st.session_state.progress_message = "Starting translation..."
-
-    # ---> Display initial progress message IMMEDIATELY <---
-    progress_area.progress(0, text=st.session_state.progress_message)
-
-    # InputText now only needs the text
-    input_data = InputText(arabicText=arabic_text_input)
-
-    # ---> Get FRESH services for each translation <---
-    print("Getting fresh translation services for this request...")
-    try:
-        # Get new instances of the orchestrator and client
-        translation_orchestrator = get_services()
-    except Exception as e:
-        print(f"Error initializing services: {e}")
-        st.error(f"Failed to initialize translation service: {e}")
-        st.session_state.is_translating = False
-        st.session_state.current_step = "error"
-        st.session_state.progress_message = "Service initialization failed."
-        progress_area.empty() # Clear progress bar
-        st.rerun() # Rerun to show the error and stop
-        # Exit this block if services couldn't be initialized
-        st.stop()
-
-    # Define the async function with internal error handling
-    async def run_translation():
-        try:
-            print("Attempting await translation_orchestrator.translate_with_progress...") # Add logging
-            # This executes the core translation logic using the fresh orchestrator
-            await translation_orchestrator.translate_with_progress(input_data, handle_progress)
-            # If successful, the 'completed' step will be set by handle_progress
-        except Exception as e:
-             # Handle errors *during* the async translation steps
-             print(f"Error during async translation task: {e}") # Log error
-             st.error(f"Error during translation task: {e}")
-             # Ensure state reflects failure
-             st.session_state.current_step = "error" # Use a specific error state
-             st.session_state.translation_result = None # Ensure result is cleared on internal error
-             st.session_state.progress_message = "Translation failed."
-        finally:
-             # This block ensures is_translating is set False even if await fails
-             st.session_state.is_translating = False
-
-    # Run the async function in the event loop
-    try:
-        # Execute the async function
-        asyncio.run(run_translation())
-
-    except Exception as e:
-        # Handle errors related to *launching* or running the async function itself
-        print(f"Error launching translation: {e}") # Log error
-        st.error(f"An error occurred launching the translation: {e}")
-        st.session_state.is_translating = False
-        st.session_state.translation_result = None # Ensure cleared here too
-        st.session_state.current_step = "error"
-        st.session_state.progress_message = "Failed to start translation."
-    finally:
-        # Ensure progress area is cleared if the process finishes or errors out
-        # Check is_translating because it should be False now if run_translation finished/errored
-        if not st.session_state.is_translating:
-             # Check final step state to decide whether to clear or show error
-             if st.session_state.current_step == "error":
-                 progress_area.error(st.session_state.progress_message)
-             else:
-                 progress_area.empty()
-
-    # Rerun the script to update the UI based on the final state
-    st.rerun()
+# --- Translation Execution (Triggered by State) --- #
+# This block runs *after* the rerun triggered by the button click
+if st.session_state.get('is_translating', False):
+    # Ensure orchestrator is available (it should be if we got here)
+    if not translation_orchestrator:
+        st.error("Translation services unavailable. Cannot proceed.")
+        st.session_state.is_translating = False # Reset state
+        st.rerun()
+    else:
+        input_text = st.session_state.get('text_to_process', '')
+        if input_text:
+            input_data = InputText(arabicText=input_text)
+            # Display spinner while running
+            with st.spinner("Translating and analyzing..."):
+                try:
+                    print("Attempting translation_orchestrator.translate_with_progress...") # Add logging
+                    # Call the async function directly - Streamlit handles the await
+                    # Use the cached orchestrator instance
+                    st.session_state.translation_result = translation_orchestrator.translate_with_progress(input_data, handle_progress)
+                    st.session_state.current_step = "completed" # Explicitly set completion
+                    st.session_state.progress_message = "Translation complete!"
+                    print("Translation completed successfully.")
+                except Exception as e:
+                    print(f"Error during translation execution: {e}") # Log error
+                    st.error(f"Translation Error: {e}")
+                    st.session_state.current_step = "error"
+                    st.session_state.translation_result = None
+                    st.session_state.progress_message = "Translation failed."
+                finally:
+                    # Always mark as not translating anymore and trigger UI update
+                    st.session_state.is_translating = False
+                    st.session_state.text_to_process = None # Clear processed text
+                    st.rerun()
+        else:
+            # Should not happen if button logic is correct, but handle defensively
+            st.warning("No text found to process.")
+            st.session_state.is_translating = False
+            st.rerun()
 
 # --- Display Updates and Final Results --- #
 
-# Display progress bar/spinner (Refined Logic from previous step)
-# This part mostly stays the same, but it relies on the state being correctly set
-if st.session_state.is_translating:
+# Display progress bar/spinner (Refined Logic)
+# Use the state set by the callback or the execution block
+current_state = st.session_state.get('current_step', 'not_started')
+if st.session_state.get('is_translating', False): # Show progress if actively translating
+    # (Existing progress bar logic based on current_step can remain here)
     step_list = [s for s in TranslationStep.__args__ if s not in ['completed', 'not_started', 'error']] if hasattr(TranslationStep, '__args__') else []
     max_index = len(step_list)
 
     progress_value = 0.0
-    current_state = st.session_state.current_step
-
     if current_state == "completed":
         progress_value = 1.0
     elif current_state == "error":
@@ -434,13 +408,13 @@ if st.session_state.is_translating:
     # Ensure progress is within bounds [0.0, 1.0]
     progress_value = max(0.0, min(1.0, progress_value))
     # Display uses the message set by the trigger or callback
-    progress_area.progress(progress_value, text=st.session_state.progress_message)
+    progress_area.progress(progress_value, text=st.session_state.get('progress_message', 'Processing...'))
 
-elif st.session_state.current_step == "error":
-    # Keep showing error message even when not 'translating'
-    progress_area.error(st.session_state.progress_message)
+elif current_state == "error":
+    # Keep showing error message if the last attempt failed
+    progress_area.error(st.session_state.get('progress_message', 'An error occurred.'))
 else:
-    progress_area.empty() # Clear progress bar when done or idle and no error
+    progress_area.empty() # Clear progress bar when done or idle
 
 # Display results progressively or when completed
 if st.session_state.translation_result:
