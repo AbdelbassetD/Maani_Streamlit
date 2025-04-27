@@ -251,7 +251,7 @@ with st.sidebar:
 # Check if orchestrator initialized successfully before showing the main app area
 if translation_orchestrator:
     with st.container(border=True):
-        st.subheader("Input Text")
+        st.subheader("Source Text")
         # available_datasets = translation_orchestrator.get_datasets() # Not needed anymore for examples
         example_options = list(EXAMPLE_TEXTS.keys())
 
@@ -272,7 +272,8 @@ if translation_orchestrator:
             "Enter Classical Arabic text here OR select an example from the sidebar:",
             height=150,
             key="arabic_input", # Bind widget to session state
-            label_visibility="collapsed" # Hide default label
+            label_visibility="collapsed", # Hide default label
+            placeholder="Enter the Classical Arabic source text here..."
         )
         # Display Character/Word Count (Moved here after removing columns)
         input_text_for_analysis = st.session_state.arabic_input
