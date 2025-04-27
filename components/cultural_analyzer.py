@@ -36,7 +36,7 @@ FALLBACK_CULTURAL_GAPS = [
     )
 ]
 
-async def generate_cultural_gap_analysis(
+def generate_cultural_gap_analysis(
     llm_client: LLMClient,
     arabic_text: str,
     refined_translation: str,
@@ -50,7 +50,7 @@ async def generate_cultural_gap_analysis(
     prompt = get_cultural_gap_analysis_prompt(arabic_text, refined_translation, context)
     start_time = time.time()
 
-    response_text = await llm_client.generate_text(
+    response_text = llm_client.generate_text(
         prompt,
         temperature=TEMP_CULTURAL_ANALYSIS,
         max_output_tokens=MAX_TOKENS_CULTURAL_ANALYSIS

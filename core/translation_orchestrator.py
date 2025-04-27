@@ -90,7 +90,7 @@ class TranslationOrchestrator:
         logging.info("Simulation complete.")
         return result
 
-    async def translate_with_progress(
+    def translate_with_progress(
         self,
         input_data: InputText,
         progress_callback: Optional[Callable[[TranslationStep, Optional[TranslationResult]], None]] = None
@@ -116,7 +116,7 @@ class TranslationOrchestrator:
             result.currentStep = 'initial_translation'
             _update_progress(result.currentStep, result)
             start_step_time = time.time()
-            initial_text = await generate_initial_translation(self.llm_client, input_data.arabicText)
+            initial_text = generate_initial_translation(self.llm_client, input_data.arabicText)
             if initial_text is None: raise ValueError("Initial translation failed critically.")
             initial_confidence = generate_reliable_confidence(input_data.arabicText, initial_text, False)
             result.initialTranslation = InitialTranslation(
@@ -131,7 +131,7 @@ class TranslationOrchestrator:
             result.currentStep = 'context_analysis'
             _update_progress(result.currentStep, result)
             start_step_time = time.time()
-            result.contextAnalysis = await generate_context_analysis(self.llm_client, input_data.arabicText)
+            result.contextAnalysis = generate_context_analysis(self.llm_client, input_data.arabicText)
             if result.contextAnalysis.generatedTime is None: # Assign time if component didn't
                  result.contextAnalysis.generatedTime = int((time.time() - start_step_time) * 1000)
             logging.info(f"Step 2 (Context) took {result.contextAnalysis.generatedTime} ms. Genre: {result.contextAnalysis.genre}")
@@ -141,12 +141,11 @@ class TranslationOrchestrator:
             result.currentStep = 'refinement'
             _update_progress(result.currentStep, result)
             start_step_time = time.time()
-            refined_text = await generate_refined_translation(
+            refined_text = generate_refined_translation(
                 self.llm_client, input_data.arabicText, result.initialTranslation.text, result.contextAnalysis
             )
             refined_confidence = generate_reliable_confidence(input_data.arabicText, refined_text, True)
-            # Generate nuances *after* refinement is done
-            linguistic_nuances = await generate_linguistic_nuances(
+            linguistic_nuances = generate_linguistic_nuances(
                  self.llm_client, input_data.arabicText, refined_text, result.contextAnalysis
             )
             result.refinedTranslation = RefinedTranslation(
@@ -162,7 +161,7 @@ class TranslationOrchestrator:
             result.currentStep = 'evaluation'
             _update_progress(result.currentStep, result)
             start_step_time = time.time()
-            result.evaluation = await generate_translation_evaluation(
+            result.evaluation = generate_translation_evaluation(
                 self.llm_client, input_data.arabicText, result.initialTranslation.text, result.refinedTranslation.text, result.contextAnalysis
             )
             if result.evaluation.generatedTime is None:
@@ -174,7 +173,7 @@ class TranslationOrchestrator:
             result.currentStep = 'cultural_gap_analysis'
             _update_progress(result.currentStep, result)
             start_step_time = time.time()
-            result.culturalGapAnalysis = await generate_cultural_gap_analysis(
+            result.culturalGapAnalysis = generate_cultural_gap_analysis(
                 self.llm_client, input_data.arabicText, result.refinedTranslation.text, result.contextAnalysis
             )
             if result.culturalGapAnalysis.generatedTime is None:
@@ -191,10 +190,20 @@ class TranslationOrchestrator:
 
         except Exception as e:
             logging.error(f"Translation orchestration failed: {e}", exc_info=True)
-            result.currentStep = 'completed' # Mark as completed even on error
-            _update_progress(result.currentStep, result) # Update UI
+            # Set step to error
+            result.currentStep = 'error'
+            # Try to update progress one last time if possible
+            try:
+                 _update_progress(result.currentStep, result)
+            except Exception as callback_err:
+                 logging.error(f"Error in final error progress callback: {callback_err}")
+            # Re-raise the exception to be caught by the caller (app.py)
+            raise e
+            # --- Old logic: returning partial result ---
+            # result.currentStep = 'completed' # Mark as completed even on error
+            # _update_progress(result.currentStep, result) # Update UI
             # Return the partially filled result object for debugging/display
             # Or potentially run full simulation as fallback:
             # logging.warning("Falling back to simulation due to error.")
             # return await self.simulate_translation(input_data.arabicText, input_data.dataset)
-            return result # Return partial result on error 
+            # return result # Return partial result on error

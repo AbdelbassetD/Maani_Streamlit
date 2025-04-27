@@ -7,7 +7,7 @@ from config.prompts import get_refinement_prompt
 from config.settings import TEMP_REFINEMENT, MAX_TOKENS_REFINEMENT
 from shared_types import ContextAnalysis
 
-async def generate_refined_translation(
+def generate_refined_translation(
     llm_client: LLMClient,
     arabic_text: str,
     initial_translation: str,
@@ -21,7 +21,7 @@ async def generate_refined_translation(
     prompt = get_refinement_prompt(arabic_text, initial_translation, context)
     start_time = time.time()
 
-    refined_text = await llm_client.generate_text(
+    refined_text = llm_client.generate_text(
         prompt,
         temperature=TEMP_REFINEMENT,
         max_output_tokens=MAX_TOKENS_REFINEMENT

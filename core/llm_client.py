@@ -33,13 +33,13 @@ class LLMClient:
             )
             logging.info(f"Initialized Google Generative AI model: {self.model_name}")
         except Exception as e:
-            logging.error(f"Failed to configure/initialize Google Generative AI: {e}")
+            logging.error(f"Failed to initialize Google Generative AI model shell: {e}")
             self.model = None # Ensure model is None if initialization fails
 
-    async def generate_text(self, prompt: str, temperature: float = 0.2, max_output_tokens: Optional[int] = None) -> Optional[str]:
-        """Calls the Google Generative AI API to generate text, with error handling."""
+    def generate_text(self, prompt: str, temperature: float = 0.2, max_output_tokens: Optional[int] = None) -> Optional[str]:
+        """Calls the Google Generative AI API synchronously to generate text."""
         if not self.model:
-            logging.warning("Google AI model not available or not initialized. Skipping API call.")
+            logging.warning("Google AI model shell not initialized. Skipping API call.")
             return None
 
         generation_config = GenerationConfig(
@@ -48,8 +48,8 @@ class LLMClient:
         )
 
         try:
-            # Use generate_content_async for async operation
-            response: GenerateContentResponse = await self.model.generate_content_async(
+            # Use synchronous generate_content
+            response: GenerateContentResponse = self.model.generate_content(
                 prompt,
                 generation_config=generation_config
             )

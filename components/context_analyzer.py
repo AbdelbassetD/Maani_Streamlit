@@ -25,7 +25,8 @@ DEFAULT_CONTEXT_ANALYSIS = ContextAnalysis(
     generatedTime=0,
 )
 
-async def generate_context_analysis(llm_client: LLMClient, arabic_text: str) -> ContextAnalysis:
+# Make synchronous
+def generate_context_analysis(llm_client: LLMClient, arabic_text: str) -> ContextAnalysis:
     """Performs dynamic context analysis using the LLM."""
     if not llm_client or not llm_client.model:
         logging.warning("LLMClient not available for context analysis. Using default.")
@@ -34,7 +35,8 @@ async def generate_context_analysis(llm_client: LLMClient, arabic_text: str) -> 
     prompt = get_context_analysis_prompt(arabic_text)
     start_time = time.time()
 
-    response_text = await llm_client.generate_text(
+    # Remove await, call synchronous method
+    response_text = llm_client.generate_text(
         prompt,
         temperature=TEMP_CONTEXT_ANALYSIS,
         max_output_tokens=MAX_TOKENS_CONTEXT_ANALYSIS

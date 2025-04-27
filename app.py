@@ -6,6 +6,7 @@ import os # For feedback logging path
 from datetime import datetime # For feedback timestamp
 from typing import List, Tuple, Optional, Dict
 import pandas as pd # For evaluation bar chart
+import dataclasses # Import dataclasses module
 
 # Import genai here for configuration
 import google.generativeai as genai
@@ -124,46 +125,68 @@ def display_evaluation_scores(label: str, scores):
 # Simple highlighter function (replace with more robust solution if needed)
 def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) -> str:
     """Highlights text segments with tooltips. locations is List[(location, color, tooltip)]"""
-    if not locations or not isinstance(text, str): # Add check for text type
+    if not locations or not isinstance(text, str) or not text:
+        # Return empty string if text is empty or None, or if no locations
         return text if isinstance(text, str) else ""
 
-    # Sort locations by start index to handle potential overlaps correctly
-    locations.sort(key=lambda x: x[0].start)
-
+    text_len = len(text)
     highlighted_parts = []
     last_end = 0
-    for loc, color, tooltip in locations:
-        # Ensure loc is valid
+
+    # Sort locations by start index to handle potential overlaps correctly
+    try:
+        # Ensure sorting doesn't fail if location objects are malformed
+        locations.sort(key=lambda x: x[0].start if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') else 0)
+    except Exception as e:
+        print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
+        return text # Return original text if sorting fails
+
+    for loc_tuple in locations:
+        # Check tuple structure
+        if not isinstance(loc_tuple, tuple) or len(loc_tuple) != 3:
+            print(f"Skipping invalid location tuple format: {loc_tuple}")
+            continue
+
+        loc, color, tooltip = loc_tuple
+
+        # Ensure loc is valid and has attributes
         if not isinstance(loc, TextLocation) or not hasattr(loc, 'start') or not hasattr(loc, 'end'):
-            print(f"Skipping invalid location object: {loc}")
+            print(f"Skipping invalid/incomplete TextLocation object: {loc}")
             continue
 
         start, end = loc.start, loc.end
-        # Ensure valid indices relative to the current text length
-        if not (isinstance(start, int) and isinstance(end, int) and 0 <= start <= end <= len(text)):
-             print(f"Skipping invalid indices: start={start}, end={end}, text_len={len(text)}")
-             continue # Skip invalid locations
+
+        # --- Robust Index Validation --- #
+        if not (isinstance(start, int) and isinstance(end, int)):
+            print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)}) TextLen={text_len}")
+            continue
+        if not (0 <= start <= text_len and 0 <= end <= text_len):
+            print(f"Skipping out-of-bounds indices: start={start}, end={end}, TextLen={text_len}")
+            continue
+        if start > end:
+            print(f"Skipping invalid range (start > end): start={start}, end={end}, TextLen={text_len}")
+            continue
+        # --- End Validation --- #
 
         # Avoid overlapping highlights - if current start is before last end, adjust start
         start = max(start, last_end)
-        if start >= end: # Skip if adjustment makes it invalid
+        # Re-check validity after adjustment
+        if start >= end:
              continue
 
-        # Add text before the highlight
+        # Add text before the highlight (slice safely)
         highlighted_parts.append(text[last_end:start])
 
-        # Add the highlighted segment with tooltip
+        # Add the highlighted segment with tooltip (slice safely)
         highlighted_segment = text[start:end]
-        # Basic HTML structure for tooltip (Streamlit uses Markdown)
-        # Escaping potential markdown/HTML characters in the tooltip
-        safe_tooltip = tooltip.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ") # Replace newlines too
-        # Using a simple span with title for hover effect
+        # Escaping tooltip
+        safe_tooltip = str(tooltip).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ")
         highlighted_parts.append(
             f'<span style="background-color: {color}; padding: 2px 4px; border-radius: 3px;" title="{safe_tooltip}">{highlighted_segment}</span>'
         )
         last_end = end
 
-    # Add any remaining text
+    # Add any remaining text (slice safely)
     highlighted_parts.append(text[last_end:])
 
     return "".join(highlighted_parts)
@@ -247,6 +270,10 @@ with st.sidebar:
         - Cultural Gap & Linguistic Nuance Identification
     """)
 
+# --- Placeholders for dynamic updates (Moved Up) ---
+# progress_area = st.empty()
+# results_area = st.container()
+
 # --- Input Area ---
 # Check if orchestrator initialized successfully before showing the main app area
 if translation_orchestrator:
@@ -295,16 +322,21 @@ if translation_orchestrator:
                 st.session_state.translation_result = None
                 st.session_state.current_step = "not_started"
                 st.session_state.progress_message = "Starting translation..."
-                # Clear display areas immediately
-                results_area.empty()
-                progress_area.empty()
+                # Don't clear placeholders here, define them after this block
                 st.rerun() # Trigger rerun to start translation
             else:
                 st.warning("Please enter text to translate.")
 
+    # --- Placeholders (Define AFTER input container) ---
+    progress_area = st.empty()
+    results_area = st.container()
+
 else:
     # Display a clear error if services couldn't initialize
     st.error("Translation services could not be initialized. Please ensure the GOOGLE_API_KEY secret is correctly set in the Streamlit Cloud app settings and refresh the page.")
+    # Define placeholders even on error to prevent NameError later if state is checked
+    progress_area = st.empty()
+    results_area = st.container()
 
 # --- Translation Process and Results --- #
 
@@ -317,10 +349,6 @@ if 'progress_message' not in st.session_state:
     st.session_state.progress_message = ""
 if 'is_translating' not in st.session_state:
     st.session_state.is_translating = False
-
-# Placeholders for dynamic updates
-progress_area = st.empty()
-results_area = st.container()
 
 # --- Progress Callback Handler ---
 def handle_progress(step: TranslationStep, partial_result: Optional[TranslationResult]):
@@ -342,9 +370,7 @@ def handle_progress(step: TranslationStep, partial_result: Optional[TranslationR
         st.session_state.translation_result = partial_result
 
 # --- Translation Execution (Triggered by State) --- #
-# This block runs *after* the rerun triggered by the button click
 if st.session_state.get('is_translating', False):
-    # Ensure orchestrator is available (it should be if we got here)
     if not translation_orchestrator:
         st.error("Translation services unavailable. Cannot proceed.")
         st.session_state.is_translating = False # Reset state
@@ -353,29 +379,38 @@ if st.session_state.get('is_translating', False):
         input_text = st.session_state.get('text_to_process', '')
         if input_text:
             input_data = InputText(arabicText=input_text)
-            # Display spinner while running
+            # Display spinner AND call sync func directly within it
             with st.spinner("Translating and analyzing..."):
                 try:
-                    print("Attempting translation_orchestrator.translate_with_progress...") # Add logging
-                    # Call the async function directly - Streamlit handles the await
-                    # Use the cached orchestrator instance
-                    st.session_state.translation_result = translation_orchestrator.translate_with_progress(input_data, handle_progress)
-                    st.session_state.current_step = "completed" # Explicitly set completion
-                    st.session_state.progress_message = "Translation complete!"
-                    print("Translation completed successfully.")
+                    print("Attempting translation_orchestrator.translate_with_progress...")
+                    # Call the *synchronous* method directly
+                    result = translation_orchestrator.translate_with_progress(input_data, handle_progress)
+                    st.session_state.translation_result = result # Store the result
+                    # Check result state explicitly if needed
+                    if result and result.currentStep == 'completed':
+                         st.session_state.current_step = "completed"
+                         st.session_state.progress_message = "Translation complete!"
+                         print("Translation completed successfully.")
+                    else:
+                         # Handle cases where orchestration finished but might have internal errors
+                         st.session_state.current_step = result.currentStep if result else "error"
+                         st.session_state.progress_message = f"Translation finished with status: {st.session_state.current_step}"
+                         print(f"Translation finished with status: {st.session_state.current_step}")
+                         if st.session_state.current_step != 'completed':
+                              st.warning(f"Translation process ended with status: {st.session_state.current_step}")
+
                 except Exception as e:
-                    print(f"Error during translation execution: {e}") # Log error
+                    print(f"Error during translation execution: {e}")
                     st.error(f"Translation Error: {e}")
                     st.session_state.current_step = "error"
                     st.session_state.translation_result = None
-                    st.session_state.progress_message = "Translation failed."
-                finally:
-                    # Always mark as not translating anymore and trigger UI update
-                    st.session_state.is_translating = False
-                    st.session_state.text_to_process = None # Clear processed text
-                    st.rerun()
+                    st.session_state.progress_message = f"Translation failed: {e}"
+
+            # Update state *after* the spinner context finishes
+            st.session_state.is_translating = False
+            st.session_state.text_to_process = None # Clear processed text
+            st.rerun() # Trigger rerun to display results/errors
         else:
-            # Should not happen if button logic is correct, but handle defensively
             st.warning("No text found to process.")
             st.session_state.is_translating = False
             st.rerun()
@@ -417,6 +452,20 @@ else:
     progress_area.empty() # Clear progress bar when done or idle
 
 # Display results progressively or when completed
+# --- DEBUG: Show the raw result object ---
+if st.session_state.get("translation_result"):
+    st.subheader("DEBUG: Raw Translation Result Object")
+    try:
+        # Convert dataclass to dict before passing to st.json
+        result_dict = dataclasses.asdict(st.session_state.translation_result)
+        st.json(result_dict)
+    except Exception as e:
+        st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
+        # Fallback: print the object representation
+        st.text(repr(st.session_state.translation_result))
+    st.divider()
+# --- END DEBUG ---
+
 if st.session_state.translation_result:
     result = st.session_state.translation_result
 

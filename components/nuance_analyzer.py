@@ -24,7 +24,7 @@ FALLBACK_LINGUISTIC_NUANCES = [
     ),
 ]
 
-async def generate_linguistic_nuances(
+def generate_linguistic_nuances(
     llm_client: LLMClient,
     arabic_text: str, # Keep arabic_text in case prompts need it later
     refined_translation: str,
@@ -43,7 +43,7 @@ async def generate_linguistic_nuances(
     prompt = get_linguistic_nuance_prompt(arabic_text, refined_translation, context)
     start_time = time.time()
 
-    response_text = await llm_client.generate_text(
+    response_text = llm_client.generate_text(
         prompt,
         temperature=TEMP_NUANCE_ANALYSIS,
         max_output_tokens=MAX_TOKENS_NUANCE_ANALYSIS

@@ -6,7 +6,7 @@ from core.llm_client import LLMClient
 from config.prompts import get_initial_translation_prompt
 from config.settings import TEMP_INITIAL_TRANSLATION, MAX_TOKENS_INITIAL_TRANSLATION
 
-async def generate_initial_translation(llm_client: LLMClient, arabic_text: str) -> Optional[str]:
+def generate_initial_translation(llm_client: LLMClient, arabic_text: str) -> Optional[str]:
     """Generates a basic initial translation using the LLM."""
     if not llm_client or not llm_client.model:
         logging.warning("LLMClient not available for initial translation.")
@@ -16,7 +16,7 @@ async def generate_initial_translation(llm_client: LLMClient, arabic_text: str) 
     prompt = get_initial_translation_prompt(arabic_text)
     start_time = time.time()
 
-    translation = await llm_client.generate_text(
+    translation = llm_client.generate_text(
         prompt,
         temperature=TEMP_INITIAL_TRANSLATION,
         max_output_tokens=MAX_TOKENS_INITIAL_TRANSLATION

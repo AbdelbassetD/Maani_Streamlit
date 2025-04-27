@@ -2,3 +2,4 @@ Paper.tex
 .venv/
 .env
 __pycache__/
+.streamlit/secrets.toml

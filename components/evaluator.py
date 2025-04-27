@@ -20,7 +20,8 @@ FALLBACK_EVALUATION = TranslationEvaluation(
     generatedTime=0,
 )
 
-async def generate_translation_evaluation(
+# Make synchronous
+def generate_translation_evaluation(
     llm_client: LLMClient,
     arabic_text: str,
     initial_translation: str,
@@ -35,7 +36,8 @@ async def generate_translation_evaluation(
     prompt = get_evaluation_prompt(arabic_text, initial_translation, refined_translation, context)
     start_time = time.time()
 
-    response_text = await llm_client.generate_text(
+    # Remove await, call synchronous method
+    response_text = llm_client.generate_text(
         prompt,
         temperature=TEMP_EVALUATION,
         max_output_tokens=MAX_TOKENS_EVALUATION
