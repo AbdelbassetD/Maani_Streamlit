@@ -263,7 +263,7 @@ with st.sidebar:
     st.header("About")
     st.info("""
         This tool performs a multi-stage translation and analysis of Classical Arabic text.
-        It leverages Google's Generative AI models to provide:
+        It leverages Generative AI (LLMs) to provide:
         - Initial & Refined Translations
         - Contextual Analysis (Genre, Tone, etc.)
         - Comparative Evaluation
