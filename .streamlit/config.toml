@@ -1,0 +1,8 @@
+    [theme]
+    base="light"
+    primaryColor="#9C27B0"
+    # You can uncomment and set other colors if desired
+    # backgroundColor="#f0f2f6"
+    # secondaryBackgroundColor="#e6eaf1"
+    # textColor="#31333F"
+    # font="sans serif"
