@@ -63,15 +63,50 @@ def generate_cultural_gap_analysis(
         logging.warning("Failed to get cultural gap analysis from LLM. Using fallback.")
         return CulturalGapAnalysis(gaps=FALLBACK_CULTURAL_GAPS, overallStrategy=DEFAULT_STRATEGY, effectivenessRating=DEFAULT_CULTURAL_EFFECTIVENESS)
 
-    gap_json = extract_json(response_text)
-    if not gap_json or not isinstance(gap_json, dict) or 'gaps' not in gap_json or not isinstance(gap_json['gaps'], list):
-        logging.warning(f"Failed to parse cultural gap JSON or missing 'gaps'. Using fallback. JSON: {gap_json}")
+    raw_json_data = extract_json(response_text)
+    gap_list = []
+    overall_strategy = DEFAULT_STRATEGY
+    effectiveness_rating = DEFAULT_CULTURAL_EFFECTIVENESS
+
+    if isinstance(raw_json_data, dict):
+        # Case 1: Correct structure { "gaps": [...], "overallStrategy": ..., ... }
+        if 'gaps' in raw_json_data and isinstance(raw_json_data['gaps'], list):
+            gap_list = raw_json_data.get('gaps', [])
+            overall_strategy = str(raw_json_data.get('overallStrategy', DEFAULT_STRATEGY))
+            eff_rating_str = raw_json_data.get('effectivenessRating', str(DEFAULT_CULTURAL_EFFECTIVENESS))
+            try:
+                eff_rating = int(eff_rating_str)
+                effectiveness_rating = min(10, max(1, eff_rating))
+            except (ValueError, TypeError):
+                logging.warning(f"Could not parse effectiveness rating ('{eff_rating_str}') as int. Using default {DEFAULT_CULTURAL_EFFECTIVENESS}.")
+                effectiveness_rating = DEFAULT_CULTURAL_EFFECTIVENESS
+        # Case 2: Single gap object returned directly {...}
+        elif 'name' in raw_json_data: # Heuristic: If it looks like a gap object itself
+            logging.warning("LLM returned a single gap object instead of the expected structure. Processing as a single gap.")
+            gap_list = [raw_json_data]
+            # Cannot get overall strategy/rating, use defaults
+            overall_strategy = DEFAULT_STRATEGY
+            effectiveness_rating = DEFAULT_CULTURAL_EFFECTIVENESS
+        else:
+            # Dictionary format is wrong
+            logging.warning(f"Failed to parse cultural gap JSON structure. Using fallback. JSON: {raw_json_data}")
+            return CulturalGapAnalysis(gaps=FALLBACK_CULTURAL_GAPS, overallStrategy=DEFAULT_STRATEGY, effectivenessRating=DEFAULT_CULTURAL_EFFECTIVENESS)
+
+    elif isinstance(raw_json_data, list):
+        # Case 3: LLM returned just a list of gaps [...] (less likely but possible)
+        logging.warning("LLM returned a list of gaps instead of the expected structure. Processing list directly.")
+        gap_list = raw_json_data
+        # Cannot get overall strategy/rating, use defaults
+        overall_strategy = DEFAULT_STRATEGY
+        effectiveness_rating = DEFAULT_CULTURAL_EFFECTIVENESS
+    else:
+        # Not a dict or list, parsing failed
+        logging.warning(f"Failed to parse cultural gap JSON response (not dict or list). Using fallback. Raw Response: {response_text[:200]}...")
         return CulturalGapAnalysis(gaps=FALLBACK_CULTURAL_GAPS, overallStrategy=DEFAULT_STRATEGY, effectivenessRating=DEFAULT_CULTURAL_EFFECTIVENESS)
 
     processed_gaps: List[CulturalGap] = []
     try:
-        gap_list = gap_json.get('gaps', [])
-        # Validate and process gaps
+        # Validate and process gaps from the extracted gap_list
         for i, gap_data in enumerate(gap_list):
             if not isinstance(gap_data, dict) or not all(k in gap_data for k in ['name', 'category', 'description', 'translationStrategy', 'sourceText', 'targetText']):
                 logging.warning(f"Gap data {i} is invalid or missing keys. Skipping.")
@@ -101,14 +136,7 @@ def generate_cultural_gap_analysis(
                 targetLocation=target_loc,
             ))
 
-        overall_strategy = str(gap_json.get('overallStrategy', DEFAULT_STRATEGY))
-        eff_rating_str = gap_json.get('effectivenessRating', str(DEFAULT_CULTURAL_EFFECTIVENESS))
-        try:
-            eff_rating = int(eff_rating_str)
-            effectiveness_rating = min(10, max(1, eff_rating)) # Clamp between 1-10
-        except (ValueError, TypeError):
-            logging.warning(f"Could not parse effectiveness rating ('{eff_rating_str}') as int. Using default {DEFAULT_CULTURAL_EFFECTIVENESS}.")
-            effectiveness_rating = DEFAULT_CULTURAL_EFFECTIVENESS
+        # Note: overallStrategy and effectiveness_rating are handled during initial parsing
 
         return CulturalGapAnalysis(
             gaps=processed_gaps, # Return the processed gaps without forcing count
@@ -118,5 +146,5 @@ def generate_cultural_gap_analysis(
         )
 
     except Exception as e:
-         logging.error(f"Error processing cultural gap data: {e}. Using fallback. Raw JSON: {gap_json}")
+         logging.error(f"Error processing cultural gap data: {e}. Using fallback. Raw JSON: {raw_json_data}")
          return CulturalGapAnalysis(gaps=FALLBACK_CULTURAL_GAPS, overallStrategy=f"{DEFAULT_STRATEGY} (Error Fallback)", effectivenessRating=DEFAULT_CULTURAL_EFFECTIVENESS - 2) 
