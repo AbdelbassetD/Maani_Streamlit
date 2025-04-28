@@ -212,7 +212,7 @@ Context Information:
 - Tone: {tone}
 - Historical Context: {hist_context}
 
-Identify 3-5 specific phrases, terms, or expressions in the English translation that:
+Identify 3-7 specific phrases, terms, or expressions in the English translation that:
 1. Have cultural or contextual significance not immediately clear.
 2. Contain subtle wordplay, metaphors, idioms, or rhetorical devices.
 3. Have ambiguous meanings or connotations worth explaining.
