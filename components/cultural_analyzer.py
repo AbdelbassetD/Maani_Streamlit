@@ -114,8 +114,17 @@ def generate_cultural_gap_analysis(
             source_text = str(gap_data.get('sourceText', '')).strip()
             target_text = str(gap_data.get('targetText', '')).strip()
 
+            st.text(f"DEBUG: Finding source match for: '{source_text}'")
             source_loc = find_best_match(source_text, arabic_text) if source_text else None
+            st.text(f"DEBUG: Match results - Source: {source_loc}")
+
+            st.text(f"DEBUG: Finding target match for: '{target_text}'")
             target_loc = find_best_match(target_text, refined_translation) if target_text else None
+            st.text(f"DEBUG: Match results - Source: {source_loc}, Target: {target_loc}")
+
+            # Log if source match failed
+            if source_text and not source_loc:
+                logging.warning(f"Could not confidently locate source text \"{source_text}\" in original arabic text. Source location will be null for gap {i}.")
 
             # If the LLM provided text but we couldn't find the TARGET text, skip the gap.
             # It's okay if source_loc is None, we just won't display the source snippet.
@@ -124,6 +133,8 @@ def generate_cultural_gap_analysis(
                  continue # Skip this gap
 
             # Only add if we successfully processed (target_loc might be None if target_text was empty)
+            # Gap is appended regardless of whether source_loc was found, but sourceLocation might be None
+            st.text(f"DEBUG: Appending processed gap {i} (SourceLoc: {source_loc}, TargetLoc: {target_loc})")
             processed_gaps.append(CulturalGap(
                 name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
                 category=str(gap_data.get('category', 'Unknown')),

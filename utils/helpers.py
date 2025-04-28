@@ -35,7 +35,7 @@ def extract_json(text: str) -> Optional[Dict[str, Any]]:
         logging.error(f"Failed to parse extracted JSON: {e}\nMatched text: {match.group(0)}\nOriginal text: {text[:500]}...")
         return None
 
-def find_best_match(term: str, text: str, score_cutoff: int = 85) -> Optional[TextLocation]:
+def find_best_match(term: str, text: str, score_cutoff: int = 75) -> Optional[TextLocation]:
     """Finds the best fuzzy match for a term in a text using thefuzz."""
     if not term or not text or len(term) < 3: # Basic checks
         return None
