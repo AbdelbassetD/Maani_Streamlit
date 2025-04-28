@@ -128,14 +128,14 @@ def display_evaluation_scores(label: str, scores):
 def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) -> str:
     """Highlights text segments with tooltips. locations is List[(location, color, tooltip)]"""
 
-    # --- Add internal print for debugging --- #
-    print(f"--- highlight_text called ---")
-    print(f"Input Text Length: {len(text) if isinstance(text, str) else 'N/A'}")
-    print(f"Input Locations: {locations}")
-    # ------------------------------------ #
+    # --- Remove internal print --- #
+    # print(f"--- highlight_text called ---")
+    # print(f"Input Text Length: {len(text) if isinstance(text, str) else 'N/A'}")
+    # print(f"Input Locations: {locations}")
+    # ----------------------------- #
 
     if not locations or not isinstance(text, str) or not text:
-        print(f"Highlighting skipped: No locations or invalid text.")
+        # print(f"Highlighting skipped: No locations or invalid text.")
         return text if isinstance(text, str) else ""
 
     text_len = len(text)
@@ -145,39 +145,35 @@ def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) ->
     # Sort locations by start index first, then by end index descending (for nested)
     try:
         # Sort primarily by start index, secondarily by end index descending
-        # This ensures outer spans are processed before inner spans if they share a start point.
         locations.sort(key=lambda x: (x[0].start, -x[0].end) if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') and hasattr(x[0], 'end') else (0, 0))
-        print(f"Sorted Locations: {locations}")
+        # print(f"Sorted Locations: {locations}")
     except Exception as e:
-        print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
+        print(f"Error sorting highlight locations: {e}. Skipping highlighting.") # Keep this one potentially?
         return text
 
     for loc_tuple in locations:
         if not isinstance(loc_tuple, tuple) or len(loc_tuple) != 3:
-            print(f"Skipping invalid location tuple format: {loc_tuple}")
+            # print(f"Skipping invalid location tuple format: {loc_tuple}")
             continue
         loc, color, tooltip = loc_tuple
         if not isinstance(loc, TextLocation) or not hasattr(loc, 'start') or not hasattr(loc, 'end'):
-            print(f"Skipping invalid/incomplete TextLocation object: {loc}")
+            # print(f"Skipping invalid/incomplete TextLocation object: {loc}")
             continue
         start, end = loc.start, loc.end
 
         # --- Refined Validation within the function --- #
         if not (isinstance(start, int) and isinstance(end, int)):
-            print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)})")
+            # print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)})")
             continue
         # Check bounds strictly: 0 <= start < end <= text_len
         if not (0 <= start < text_len and 0 < end <= text_len and start < end):
-             print(f"Skipping out-of-bounds/invalid range: start={start}, end={end}, TextLen={text_len}")
+             # print(f"Skipping out-of-bounds/invalid range: start={start}, end={end}, TextLen={text_len}")
              continue
         # -------------------------------------------- #
 
-        # Overlap handling: If the current highlight starts *before* the last one ended,
-        # it indicates a potential nesting or overlap. For simplicity now, we will skip
-        # highlights that start before the previous one ends to avoid complex merging/splitting.
-        # A more advanced implementation could handle merging or prioritize.
+        # Overlap handling
         if start < last_end:
-             print(f"Skipping highlight starting at {start} because it overlaps with previous ending at {last_end}")
+             # print(f"Skipping highlight starting at {start} because it overlaps with previous ending at {last_end}")
              continue
 
         # Add text *before* this highlight (handle potential empty slice)
@@ -197,12 +193,12 @@ def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) ->
         highlighted_parts.append(text[last_end:])
 
     final_html = "".join(highlighted_parts)
-    # --- Add internal print for debugging --- #
-    print(f"Output HTML: {final_html[:200]}...") # Print beginning of result
-    print(f"--- highlight_text finished ---")
-    # ------------------------------------ #
+    # --- Remove internal print --- #
+    # print(f"Output HTML: {final_html[:200]}...")
+    # print(f"--- highlight_text finished ---")
+    # ----------------------------- #
     return final_html
-# --- End Original Logic --- #
+# --- End highlight_text function --- #
 
 # --- Example Texts ---
 EXAMPLE_TEXTS: Dict[str, str] = {
@@ -579,12 +575,12 @@ if st.session_state.translation_result:
                         # Log error if sorting fails, but don't crash
                         print(f"Error sorting highlights: {e}. Proceeding without sorting.")
 
-                # --- Add print statement BEFORE calling highlight_text --- #
-                print("\n--- Preparing to call highlight_text ---")
-                print(f"Refined Text Length: {len(refined_text)}")
-                print(f"Highlights to Show (Input to function): {highlights_to_show}")
-                print("-----------------------------------------")
-                # ----------------------------------------------------- #
+                # --- Remove print statement BEFORE calling highlight_text --- #
+                # print("\n--- Preparing to call highlight_text ---")
+                # print(f"Refined Text Length: {len(refined_text)}")
+                # print(f"Highlights to Show (Input to function): {highlights_to_show}")
+                # print("-----------------------------------------")
+                # ------------------------------------------------------ #
 
                 highlighted_refined_text = highlight_text(refined_text, highlights_to_show)
 
@@ -610,78 +606,86 @@ if st.session_state.translation_result:
                      with col_title:
                          st.markdown("##### Cultural Gap Analysis")
                      with col_toggle:
-                         st.toggle("Enable Editing", key="edit_mode_enabled", value=st.session_state.edit_mode_enabled, label_visibility="collapsed")
+                         # Ensure toggle correctly modifies the session state
+                         st.toggle("Enable Editing", key="edit_mode_enabled", help="Toggle to edit gap details below")
 
-                     if st.session_state.editable_gaps: # Check if list is not empty
-                          st.markdown("**Identified Gaps:**") # Simplified title
-                          # Iterate through the editable list in session state
-                          for i, gap_dict in enumerate(st.session_state.editable_gaps):
-                               item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}" # Use original index for stable key
-                               gap_color = generate_distinct_color(i, base_hue=0)
-                               st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                           f'**Gap {i+1}**', unsafe_allow_html=True)
+                         # Read the state value *after* the toggle might have changed it
+                         is_editing = st.session_state.get("edit_mode_enabled", False)
 
-                               # --- Conditional Display: Edit vs Read-Only --- #
-                               if st.session_state.edit_mode_enabled:
-                                   # --- Edit Mode --- #
-                                   gap_dict['name'] = st.text_input(
-                                       f"Name##{item_key_base}", value=gap_dict['name'], key=f"{item_key_base}_name", label_visibility="collapsed"
-                                   )
-                                   gap_dict['category'] = st.text_input(
-                                       f"Category##{item_key_base}", value=gap_dict['category'], key=f"{item_key_base}_category", label_visibility="collapsed"
-                                   )
-                                   gap_dict['description'] = st.text_area(
-                                       f"Description##{item_key_base}", value=gap_dict['description'], key=f"{item_key_base}_description", height=100, label_visibility="collapsed"
-                                   )
-                                   gap_dict['translationStrategy'] = st.text_input(
-                                       f"Strategy##{item_key_base}", value=gap_dict['translationStrategy'], key=f"{item_key_base}_strategy", label_visibility="collapsed"
-                                   )
-                               else:
-                                   # --- Read-Only Mode --- #
-                                   st.markdown(f"**Name:** {gap_dict.get('name', '_N/A_')}")
-                                   st.markdown(f"**Category:** {gap_dict.get('category', '_N/A_')}")
-                                   st.markdown("**Description:**")
-                                   st.markdown(f"> {gap_dict.get('description', '_N/A_')}")
-                                   st.markdown(f"**Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}")
-                               # -------------------------------------------------- #
+                         if st.session_state.editable_gaps: # Check if list is not empty
+                              st.markdown("**Identified Gaps:**")
+                              # Iterate through the editable list in session state
+                              for i, gap_dict in enumerate(st.session_state.editable_gaps):
+                                   item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}"
+                                   gap_color = generate_distinct_color(i, base_hue=0)
+                                   st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
+                                               f'**Gap {i+1}**', unsafe_allow_html=True)
 
-                               # Display Source/Target Snippets (Read-only - consistent)
-                               source_loc = gap_dict.get('sourceLocation')
-                               target_loc = gap_dict.get('targetLocation')
+                                   # --- Conditional Display: Edit vs Read-Only --- #
+                                   if is_editing:
+                                       # --- Edit Mode --- #
+                                       st.markdown("_(Edit Mode Enabled)_", help="Fields below are editable.") # Visual Cue
+                                       gap_dict['name'] = st.text_input(
+                                           f"Name##{item_key_base}", value=gap_dict['name'], key=f"{item_key_base}_name", label_visibility="collapsed"
+                                       )
+                                       gap_dict['category'] = st.text_input(
+                                           f"Category##{item_key_base}", value=gap_dict['category'], key=f"{item_key_base}_category", label_visibility="collapsed"
+                                       )
+                                       gap_dict['description'] = st.text_area(
+                                           f"Description##{item_key_base}", value=gap_dict['description'], key=f"{item_key_base}_description", height=100, label_visibility="collapsed"
+                                       )
+                                       gap_dict['translationStrategy'] = st.text_input(
+                                           f"Strategy##{item_key_base}", value=gap_dict['translationStrategy'], key=f"{item_key_base}_strategy", label_visibility="collapsed"
+                                       )
+                                   else:
+                                       # --- Read-Only Mode --- #
+                                       st.markdown(f"**Name:** {gap_dict.get('name', '_N/A_')}")
+                                       st.markdown(f"**Category:** {gap_dict.get('category', '_N/A_')}")
+                                       st.markdown("**Description:**")
+                                       # Remove blockquote -> remove leading '>' character
+                                       st.markdown(f"{gap_dict.get('description', '_N/A_')}") # No more blockquote
+                                       st.markdown(f"**Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}")
+                                   # -------------------------------------------------- #
 
-                               if source_loc and result.inputText and result.inputText.arabicText:
-                                   try:
-                                       text_len = len(result.inputText.arabicText)
-                                       start = source_loc.start
-                                       end = source_loc.end
-                                       if 0 <= start <= end <= text_len:
-                                           source_snippet = result.inputText.arabicText[start:end]
-                                           st.caption(f"Source Snippet: `{source_snippet}`")
-                                       else:
-                                           st.caption(f"_Source location invalid ({start}-{end})_ ")
-                                   except Exception as e:
-                                       st.caption("_Error displaying source snippet._")
-                               else:
-                                   st.caption("_Source location not available._")
+                                   # Display Source/Target Snippets (Read-only - consistent)
+                                   source_loc = gap_dict.get('sourceLocation')
+                                   target_loc = gap_dict.get('targetLocation')
 
-                               if target_loc and result.refinedTranslation and result.refinedTranslation.text:
-                                   try:
-                                       text_len = len(result.refinedTranslation.text)
-                                       start = target_loc.start
-                                       end = target_loc.end
-                                       if 0 <= start <= end <= text_len:
-                                           target_snippet = result.refinedTranslation.text[start:end]
-                                           st.caption(f"Target Snippet: `{target_snippet}`")
-                                       else:
-                                           st.caption(f"_Target location invalid ({start}-{end})_ ")
-                                   except Exception as e:
-                                       st.caption("_Error displaying target snippet._")
-                               else:
-                                   st.caption("_Target location not available._")
+                                   if source_loc and result.inputText and result.inputText.arabicText:
+                                       try:
+                                           text_len = len(result.inputText.arabicText)
+                                           start = source_loc.start
+                                           end = source_loc.end
+                                           if 0 <= start < end <= text_len:
+                                               source_snippet = result.inputText.arabicText[start:end]
+                                               # Use italic caption
+                                               st.caption(f"_Source Snippet: `{source_snippet}`_")
+                                           else:
+                                               st.caption(f"_Source location invalid ({start}-{end})_")
+                                       except Exception as e:
+                                           st.caption("_Error displaying source snippet._")
+                                   else:
+                                       st.caption("_Source location not available._")
 
-                               st.markdown("---") # Separator
-                     else:
-                         st.info("No cultural gaps identified or processed.")
+                                   if target_loc and result.refinedTranslation and result.refinedTranslation.text:
+                                       try:
+                                           text_len = len(result.refinedTranslation.text)
+                                           start = target_loc.start
+                                           end = target_loc.end
+                                           if 0 <= start < end <= text_len:
+                                               target_snippet = result.refinedTranslation.text[start:end]
+                                               # Use italic caption
+                                               st.caption(f"_Target Snippet: `{target_snippet}`_")
+                                           else:
+                                               st.caption(f"_Target location invalid ({start}-{end})_")
+                                       except Exception as e:
+                                           st.caption("_Error displaying target snippet._")
+                                   else:
+                                       st.caption("_Target location not available._")
+
+                                   st.markdown("---") # Separator
+                         else:
+                             st.info("No cultural gaps identified or processed.")
             # Optionally: Add an else here to show a message if gaps were selected but 'editable_gaps' is not ready/empty
             # else:
             #     st.info("Cultural Gaps selected, but no gap data is currently available.")
@@ -697,7 +701,8 @@ if st.session_state.translation_result:
                                nuance_color = generate_distinct_color(i, base_hue=200)
                                st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
                                            f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
-                               st.markdown(f"   > {nuance.explanation}")
+                               # Remove blockquote -> remove leading '   > '
+                               st.markdown(f"{nuance.explanation}") # No more blockquote
                                st.markdown("---") # Separator
                       else:
                            st.info("No linguistic nuances identified.")
