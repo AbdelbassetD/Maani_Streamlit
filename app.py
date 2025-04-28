@@ -573,10 +573,18 @@ if st.session_state.translation_result:
                 # Sort highlights before applying (Important!)
                 if highlights_to_show:
                     try:
-                        highlights_to_show.sort(key=lambda x: x[0].start)
+                        # Sort primarily by start index, secondarily by end index descending
+                        highlights_to_show.sort(key=lambda x: (x[0].start, -x[0].end) if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') and hasattr(x[0], 'end') else (0, 0))
                     except Exception as e:
                         # Log error if sorting fails, but don't crash
                         print(f"Error sorting highlights: {e}. Proceeding without sorting.")
+
+                # --- Add print statement BEFORE calling highlight_text --- #
+                print("\n--- Preparing to call highlight_text ---")
+                print(f"Refined Text Length: {len(refined_text)}")
+                print(f"Highlights to Show (Input to function): {highlights_to_show}")
+                print("-----------------------------------------")
+                # ----------------------------------------------------- #
 
                 highlighted_refined_text = highlight_text(refined_text, highlights_to_show)
 
