@@ -555,12 +555,13 @@ if st.session_state.translation_result:
                             is_valid_loc = (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
                                             0 <= loc.start < loc.end <= text_len)
                             print(f"[Cloud Log] Gap {i} Location: {loc}, Valid: {is_valid_loc}") # Log validation
+                            # --- Re-inserting this block to ensure correctness --- #
                             if is_valid_loc:
                                 color = generate_distinct_color(i, base_hue=0)
                                 tooltip = f"CULTURAL GAP ({gap.category.upper()}): {gap.description} | Strategy: {gap.translationStrategy}"
                                 highlights_to_show.append((loc, color, tooltip))
                                 print(f"[Cloud Log] --> Appended Gap {i} highlight.") # Log append
-                            # -------------------------- #
+                            # --------------------------------------------------- #
                     else:
                         print("[Cloud Log] No cultural gap data/gaps found in result.")
 
@@ -574,12 +575,13 @@ if st.session_state.translation_result:
                             is_valid_loc = (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
                                             0 <= loc.start < loc.end <= text_len)
                             print(f"[Cloud Log] Nuance {i} Location: {loc}, Valid: {is_valid_loc}") # Log validation
+                            # --- Re-inserting this block to ensure correctness --- #
                             if is_valid_loc:
                                 color = generate_distinct_color(i, base_hue=200)
                                 tooltip = f"NUANCE ({nuance.category.upper()}): {nuance.explanation}"
                                 highlights_to_show.append((loc, color, tooltip))
                                 print(f"[Cloud Log] --> Appended Nuance {i} highlight.") # Log append
-                             # -------------------------- #
+                            # --------------------------------------------------- #
                     else:
                          print("[Cloud Log] No linguistic nuance data found in result.")
                 # --- End highlight preparation --- #
@@ -630,7 +632,7 @@ if st.session_state.translation_result:
                                item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}"
                                gap_color = generate_distinct_color(i, base_hue=0)
                                st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                           f'**Gap {i+1}**', unsafe_allow_html=True)
+                                     f'**{i+1}. {gap.name} ({gap.category.capitalize()})**', unsafe_allow_html=True)
 
                                # --- Conditional Display: Edit vs Read-Only --- #
                                if is_editing:
@@ -647,10 +649,10 @@ if st.session_state.translation_result:
 
                                else:
                                    # --- Read-Only Mode (Simplified Layout) --- #
-                                   st.markdown(f"**Name:** {gap_dict.get('name', '_N/A_')}")
-                                   st.markdown(f"**Category:** {gap_dict.get('category', '_N/A_')}")
-                                   st.markdown(f"**Description:** {gap_dict.get('description', '_N/A_')}") # Combined label and value
-                                   st.markdown(f"**Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}") # Combined label and value
+                                #    st.markdown(f"   - **Name:** {gap_dict.get('name', '_N/A_')}")
+                                   st.markdown(f"   - **Category:** {gap_dict.get('category', '_N/A_')}")
+                                   st.markdown(f"   - **Description:** {gap_dict.get('description', '_N/A_')}") # Combined label and value
+                                   st.markdown(f"   - **Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}") # Combined label and value
                                # -------------------------------------------------- #
 
                                # Display Source/Target Snippets (Read-only - revert to combined caption)
