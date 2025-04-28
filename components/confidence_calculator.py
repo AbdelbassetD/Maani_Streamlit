@@ -95,7 +95,7 @@ def generate_reliable_confidence(
         sentence_with_period = sentence + ('' if re.search(r'[.!?]$', sentence) else '.')
         segment_length = len(sentence_with_period)
 
-        # Segment-specific factors (simplified from original TS)
+        # Segment-specific factors
         # Length factor: very short/long segments slightly less confident
         length_factor = -0.03 if segment_length < 15 else -0.05 if segment_length > 150 else 0.01
         # Complexity factor: more markers = slightly less confident
@@ -114,4 +114,4 @@ def generate_reliable_confidence(
         ))
         position += segment_length + 1 # Account for space after period/punctuation
 
-    return TranslationConfidence(overall=round(overall_confidence, 2), segments=segments_data) 
+    return TranslationConfidence(overall=round(overall_confidence, 2), segments=segments_data)
