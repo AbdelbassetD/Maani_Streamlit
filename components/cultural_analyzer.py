@@ -83,31 +83,23 @@ def generate_cultural_gap_analysis(
             source_loc = find_best_match(source_text, arabic_text) if source_text else None
             target_loc = find_best_match(target_text, refined_translation) if target_text else None
 
-            # Create fallback locations only if match fails *and* text was provided
-            if not source_loc and source_text:
-                start = int(len(arabic_text) * (i / max(1, len(gap_list)))) # Distribute fallbacks
-                end = min(start + max(10, len(source_text)), len(arabic_text))
-                source_loc = TextLocation(start=start, end=end)
-                logging.debug(f"Could not find source text '{source_text}'. Using fallback location {source_loc}")
-            if not target_loc and target_text:
-                start = int(len(refined_translation) * (i / max(1, len(gap_list)))) # Distribute fallbacks
-                end = min(start + max(10, len(target_text)), len(refined_translation))
-                target_loc = TextLocation(start=start, end=end)
-                logging.debug(f"Could not find target text '{target_text}'. Using fallback location {target_loc}")
+            # If the LLM provided text but we couldn't find it, skip the gap for highlighting.
+            if source_text and not source_loc:
+                 logging.warning(f"Could not confidently locate source text '{source_text}' provided by LLM for gap '{gap_data.get('name', 'N/A')}'. Skipping gap.")
+                 continue # Skip this gap
+            if target_text and not target_loc:
+                 logging.warning(f"Could not confidently locate target text '{target_text}' provided by LLM for gap '{gap_data.get('name', 'N/A')}'. Skipping gap.")
+                 continue # Skip this gap
 
-            # Only add if we found a location
-            if target_loc:
-                processed_gaps.append(CulturalGap(
-                    name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
-                    category=str(gap_data.get('category', 'Unknown')),
-                    description=str(gap_data.get('description', 'N/A')),
-                    translationStrategy=str(gap_data.get('translationStrategy', 'N/A')),
-                    sourceLocation=source_loc,
-                    targetLocation=target_loc,
-                ))
-            else:
-                logging.warning(f"Could not find source/target location for gap: '{gap_data.get('name', 'N/A')}'. Skipping gap.")
-                # Do not append if location finding failed
+            # Only add if we successfully processed (which now implies locations were found or text was empty)
+            processed_gaps.append(CulturalGap(
+                name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
+                category=str(gap_data.get('category', 'Unknown')),
+                description=str(gap_data.get('description', 'N/A')),
+                translationStrategy=str(gap_data.get('translationStrategy', 'N/A')),
+                sourceLocation=source_loc,
+                targetLocation=target_loc,
+            ))
 
         overall_strategy = str(gap_json.get('overallStrategy', DEFAULT_STRATEGY))
         eff_rating_str = gap_json.get('effectivenessRating', str(DEFAULT_CULTURAL_EFFECTIVENESS))

@@ -1,6 +1,7 @@
 """Stores the prompts used for interacting with the Generative AI model."""
 import json
 from shared_types import ContextAnalysis # Assuming shared_types is accessible
+import logging
 
 def get_initial_translation_prompt(arabic_text: str) -> str:
     return f"""Translate the following Classical Arabic text to English. Provide only the English translation.
@@ -131,20 +132,20 @@ Provide ONLY the evaluation in the following JSON format:
 """
 
 def get_cultural_gap_analysis_prompt(arabic_text: str, refined_translation: str, context: ContextAnalysis) -> str:
-    # Safely format key terminology for the prompt
     key_terms_str = json.dumps(context.keyTerminology) if context and context.keyTerminology else "[]"
     genre = context.genre if context else "Unknown"
     time_period = context.timePeriod if context else "Unknown"
     tone = context.tone if context else "Unknown"
     hist_context = context.historicalContext if context else "Not available"
 
-    return f"""
-You are a specialist in cross-cultural communication and translation studies, focusing on Arabic-English challenges.
+    return f"""You are a specialist in cross-cultural communication and translation studies, focusing on Classical Arabic to modern English challenges.
 
-Analyze the refined translation to identify cultural gaps between the Arabic source and English target. Evaluate how effectively these gaps were addressed.
+Your task is to analyze the provided Arabic text and its English translation to identify **ALL significant cultural translation gaps**. A cultural gap occurs where concepts, references, values, social norms, idioms, or material culture from the source text do not have a direct or easily understood equivalent in the target language and culture (modern English). Focus on elements requiring cultural context beyond simple lexical equivalence.
 
 Original Arabic Text:
+```
 {arabic_text}
+```
 
 Context Analysis:
 - Genre: {genre}
@@ -153,28 +154,34 @@ Context Analysis:
 - Key Terminology: {key_terms_str}
 - Historical Context: {hist_context}
 
-Refined Translation:
+Refined English Translation:
+```
 {refined_translation}
+```
 
-STRICT GUIDELINES FOR CULTURAL GAPS:
-1. Identify EXACTLY 3 significant cultural gaps.
-2. For each gap, provide:
-   - name: Descriptive name (e.g., 'Concept of Jihad')
-   - category: cultural/linguistic/historical/religious/etc.
-   - description: Why it's a translation challenge (1-2 sentences).
-   - translationStrategy: How the gap was bridged (e.g., 'Explanatory equivalent', 'Transliteration with footnote').
-   - sourceText: The EXACT Arabic phrase/term from the original text.
-   - targetText: The CORRESPONDING English translation segment in the target text.
-3. VERIFY sourceText and targetText semantically correspond.
-4. Provide 'overallStrategy': General approach to handling gaps (1 sentence).
-5. Provide 'effectivenessRating': Overall success in bridging gaps (1-10).
+**INSTRUCTIONS FOR ANALYSIS:**
+1.  **Identify All Gaps:** Thoroughly scan the original text and translation to find **all** instances representing a cultural gap as defined above.
+2.  **Extract Verbatim Segments:** For each identified gap, you **MUST** extract the corresponding text segments *exactly* as they appear:
+    *   `sourceText`: The **exact phrase or term** from the *Original Arabic Text* that represents the gap.
+    *   `targetText`: The **exact corresponding phrase or term** from the *Refined English Translation* where the gap is addressed or translated.
+    *   **Accuracy is critical.** Ensure these segments semantically match and are copied verbatim.
+3.  **Describe Each Gap:** For each gap, provide:
+    *   `name`: A concise, descriptive name for the gap (e.g., 'Concept of Adab', 'Historical Event Reference', 'Islamic Legal Term').
+    *   `category`: Classify the gap (e.g., 'Religious Concept', 'Historical Reference', 'Social Norm', 'Idiom', 'Material Culture', 'Linguistic-Cultural').
+    *   `description`: Briefly explain *why* this specific element presents a cultural translation challenge (1-2 sentences).
+    *   `translationStrategy`: Describe the strategy used in the refined translation to bridge the gap (e.g., 'Literal Translation', 'Functional Equivalent', 'Explanatory Translation', 'Cultural Substitution', 'Omission', 'Compensation', 'Transliteration with explanation').
+4.  **Summarize:**
+    *   `overallStrategy`: Briefly describe the main approach(es) observed in handling cultural gaps across the entire translation (1 sentence).
+    *   `effectivenessRating`: Rate the overall success (1-10) of the refined translation in bridging the identified cultural gaps.
 
-Provide ONLY the analysis in the following JSON format:
+**OUTPUT FORMAT:**
+Provide ONLY the analysis in the following JSON format. Ensure `sourceText` and `targetText` are exact verbatim copies.
+
 {{
   "gaps": [
-    {{ "name": "...", "category": "...", "description": "...", "translationStrategy": "...", "sourceText": "exact Arabic segment", "targetText": "exact English segment" }},
-    {{ "name": "...", "category": "...", "description": "...", "translationStrategy": "...", "sourceText": "exact Arabic segment", "targetText": "exact English segment" }},
-    {{ "name": "...", "category": "...", "description": "...", "translationStrategy": "...", "sourceText": "exact Arabic segment", "targetText": "exact English segment" }}
+    {{ "name": "...", "category": "...", "description": "...", "translationStrategy": "...", "sourceText": "VERBATIM Arabic segment", "targetText": "VERBATIM English segment" }},
+    {{ "name": "...", "category": "...", "description": "...", "translationStrategy": "...", "sourceText": "VERBATIM Arabic segment", "targetText": "VERBATIM English segment" }}
+    // ... include ALL identified gaps ...
   ],
   "overallStrategy": "description of overall approach",
   "effectivenessRating": <1-10>

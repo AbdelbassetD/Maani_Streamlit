@@ -7,6 +7,7 @@ from datetime import datetime # For feedback timestamp
 from typing import List, Tuple, Optional, Dict
 import pandas as pd # For evaluation bar chart
 import dataclasses # Import dataclasses module
+import logging # Added for logging
 
 # Import genai here for configuration
 import google.generativeai as genai
@@ -544,9 +545,28 @@ if st.session_state.translation_result:
 
                      st.markdown("**Identified Gaps (with color key):**")
                      for i, gap in enumerate(result.culturalGapAnalysis.gaps):
-                         gap_color = generate_distinct_color(i, base_hue=0) # Use the pre-calculated color
+                         gap_color = generate_distinct_color(i, base_hue=0)
                          st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
                                      f'**{i+1}. {gap.name} ({gap.category.capitalize()})**', unsafe_allow_html=True)
+
+                         # Display Source Text if location exists
+                         if gap.sourceLocation and result.inputText and result.inputText.arabicText:
+                             try:
+                                 # Validate indices before slicing
+                                 text_len = len(result.inputText.arabicText)
+                                 start = gap.sourceLocation.start
+                                 end = gap.sourceLocation.end
+                                 if 0 <= start <= end <= text_len: # Ensure start <= end and within bounds
+                                     source_snippet = result.inputText.arabicText[start:end]
+                                     st.markdown(f"   - **Source Snippet:** `{source_snippet}`")
+                                 else:
+                                     st.caption(f"   - _Source location indices invalid ({start}-{end}) for text length {text_len}._")
+                             except Exception as e:
+                                 logging.warning(f"Error displaying source snippet for gap {i}: {e}")
+                                 st.caption("   - _Error displaying source snippet._")
+                         else:
+                              st.caption("   - _Source location not available._")
+
                          st.markdown(f"   - **Challenge:** {gap.description}")
                          st.markdown(f"   - **Strategy:** {gap.translationStrategy}")
                          snippet_parts = []
