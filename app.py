@@ -327,6 +327,7 @@ if translation_orchestrator:
                 st.session_state.text_to_process = arabic_text_input # Store the text
                 st.session_state.feedback_submitted = False
                 st.session_state.translation_result = None
+                st.session_state.editable_gaps = None # Reset editable gaps on new run
                 st.session_state.current_step = "not_started"
                 st.session_state.progress_message = "Starting translation..."
                 # Don't clear placeholders here, define them after this block
@@ -350,6 +351,8 @@ else:
 # Initialize session state variables
 if 'translation_result' not in st.session_state:
     st.session_state.translation_result = None
+if 'editable_gaps' not in st.session_state: # Add state for editable gaps
+    st.session_state.editable_gaps = None
 if 'current_step' not in st.session_state:
     st.session_state.current_step = "not_started"
 if 'progress_message' not in st.session_state:
@@ -393,6 +396,25 @@ if st.session_state.get('is_translating', False):
                     # Call the *synchronous* method directly
                     result = translation_orchestrator.translate_with_progress(input_data, handle_progress)
                     st.session_state.translation_result = result # Store the result
+                    # --- Populate editable gaps on successful translation --- #
+                    if result and result.culturalGapAnalysis and result.culturalGapAnalysis.gaps:
+                        # Convert CulturalGap objects to mutable dictionaries
+                        st.session_state.editable_gaps = [
+                            {
+                                "name": gap.name,
+                                "category": gap.category,
+                                "description": gap.description,
+                                "translationStrategy": gap.translationStrategy,
+                                "sourceLocation": gap.sourceLocation, # Keep original location
+                                "targetLocation": gap.targetLocation, # Keep original location
+                                # Add an original_index if needed for stable keys
+                                "original_index": i
+                            } for i, gap in enumerate(result.culturalGapAnalysis.gaps)
+                        ]
+                    else:
+                        st.session_state.editable_gaps = [] # Ensure it's an empty list if no gaps
+                    # -------------------------------------------------------- #
+
                     # Check result state explicitly if needed
                     if result and result.currentStep == 'completed':
                          st.session_state.current_step = "completed"
@@ -411,6 +433,7 @@ if st.session_state.get('is_translating', False):
                     st.error(f"Translation Error: {e}")
                     st.session_state.current_step = "error"
                     st.session_state.translation_result = None
+                    st.session_state.editable_gaps = None # Clear on error too
                     st.session_state.progress_message = f"Translation failed: {e}"
 
             # Update state *after* the spinner context finishes

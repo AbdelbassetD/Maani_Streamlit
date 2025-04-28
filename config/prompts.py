@@ -162,7 +162,7 @@ Refined English Translation:
 **INSTRUCTIONS FOR ANALYSIS:**
 1.  **Identify All Gaps:** Thoroughly scan the original text and translation to find **all** instances representing a cultural gap as defined above.
 2.  **Extract Verbatim Segments:** For each identified gap, you **MUST** extract the corresponding text segments *exactly* as they appear:
-    *   `sourceText`: The **exact phrase or term** from the *Original Arabic Text* that represents the gap.
+    *   `sourceText`: The **exact VERBATIM (no transliteration) phrase or term** from the *Original Arabic Text* that represents the gap.
     *   `targetText`: The **exact corresponding phrase or term** from the *Refined English Translation* where the gap is addressed or translated.
     *   **Accuracy is critical.** Ensure these segments semantically match and are copied **VERBATIM (character-for-character)**. Do **NOT** transliterate, summarize, or paraphrase the `sourceText` or `targetText`. Example: If the Arabic text is `الحَمْدُ للهِ`, the `sourceText` MUST be `الحَمْدُ للهِ`, not `Alhamdulillah` or `Praise Allah`.
 3.  **Describe Each Gap:** For each gap, provide:
