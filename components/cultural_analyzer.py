@@ -60,10 +60,12 @@ def generate_cultural_gap_analysis(
     generated_time_ms = int((end_time - start_time) * 1000)
 
     # --- START DEBUGGING --- #
-    print(f"DEBUG: LLM Raw Response (Cultural Gap):
----
-{response_text}
----")
+    # Temporarily remove multi-line print to isolate syntax error
+    # print(f"DEBUG: LLM Raw Response (Cultural Gap):
+# ---
+# {response_text}
+# ---")
+    print(f"DEBUG: LLM Raw Response (Cultural Gap Length): {len(response_text) if response_text else 0}") # Print length instead
     # --- END DEBUGGING --- #
 
     if not response_text:
