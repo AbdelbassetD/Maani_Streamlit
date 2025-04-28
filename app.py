@@ -534,36 +534,54 @@ if st.session_state.translation_result:
             )
 
             if result.refinedTranslation and result.refinedTranslation.text:
+                # --- Explicitly read state right before use --- #
+                highlight_type = st.session_state.get("highlight_display_type", "None")
+                # --- Add print for cloud logs --- #
+                print(f"[Cloud Log] Highlight Type Selected: {highlight_type}")
+                # -------------------------------- #
+
                 # --- Prepare highlights based on selection --- #
                 highlights_to_show = []
                 refined_text = result.refinedTranslation.text
                 text_len = len(refined_text)
 
                 if highlight_type == "Cultural Gaps":
+                    print("[Cloud Log] Preparing Cultural Gap highlights...") # Log entry
                     if result.culturalGapAnalysis and result.culturalGapAnalysis.gaps:
+                        print(f"[Cloud Log] Found {len(result.culturalGapAnalysis.gaps)} potential gaps.")
                         for i, gap in enumerate(result.culturalGapAnalysis.gaps):
                             loc = gap.targetLocation
                             # --- Add Explicit Validation --- #
-                            if (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
-                                0 <= loc.start < loc.end <= text_len):
+                            is_valid_loc = (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
+                                            0 <= loc.start < loc.end <= text_len)
+                            print(f"[Cloud Log] Gap {i} Location: {loc}, Valid: {is_valid_loc}") # Log validation
+                            if is_valid_loc:
                                 color = generate_distinct_color(i, base_hue=0)
                                 tooltip = f"CULTURAL GAP ({gap.category.upper()}): {gap.description} | Strategy: {gap.translationStrategy}"
                                 highlights_to_show.append((loc, color, tooltip))
-                            # else: Optionally log skipped gap location internally if needed for deep debugging
+                                print(f"[Cloud Log] --> Appended Gap {i} highlight.") # Log append
                             # -------------------------- #
+                    else:
+                        print("[Cloud Log] No cultural gap data/gaps found in result.")
 
                 elif highlight_type == "Linguistic Nuances":
+                    print("[Cloud Log] Preparing Linguistic Nuance highlights...") # Log entry
                     if result.refinedTranslation.linguisticNuances:
-                         for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
-                             loc = nuance.targetLocation
-                             # --- Add Explicit Validation --- #
-                             if (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
-                                 0 <= loc.start < loc.end <= text_len):
-                                 color = generate_distinct_color(i, base_hue=200)
-                                 tooltip = f"NUANCE ({nuance.category.upper()}): {nuance.explanation}"
-                                 highlights_to_show.append((loc, color, tooltip))
-                             # else: Optionally log skipped nuance location internally
+                        print(f"[Cloud Log] Found {len(result.refinedTranslation.linguisticNuances)} potential nuances.")
+                        for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
+                            loc = nuance.targetLocation
+                            # --- Add Explicit Validation --- #
+                            is_valid_loc = (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
+                                            0 <= loc.start < loc.end <= text_len)
+                            print(f"[Cloud Log] Nuance {i} Location: {loc}, Valid: {is_valid_loc}") # Log validation
+                            if is_valid_loc:
+                                color = generate_distinct_color(i, base_hue=200)
+                                tooltip = f"NUANCE ({nuance.category.upper()}): {nuance.explanation}"
+                                highlights_to_show.append((loc, color, tooltip))
+                                print(f"[Cloud Log] --> Appended Nuance {i} highlight.") # Log append
                              # -------------------------- #
+                    else:
+                         print("[Cloud Log] No linguistic nuance data found in result.")
                 # --- End highlight preparation --- #
 
                 # Sort highlights before applying (Important!)
@@ -575,11 +593,8 @@ if st.session_state.translation_result:
                         # Log error if sorting fails, but don't crash
                         print(f"Error sorting highlights: {e}. Proceeding without sorting.")
 
-                # --- Remove print statement BEFORE calling highlight_text --- #
-                # print("\n--- Preparing to call highlight_text ---")
-                # print(f"Refined Text Length: {len(refined_text)}")
-                # print(f"Highlights to Show (Input to function): {highlights_to_show}")
-                # print("-----------------------------------------")
+                # --- Add print statement BEFORE calling highlight_text --- #
+                print(f"[Cloud Log] Final list BEFORE highlight_text call: {highlights_to_show}")
                 # ------------------------------------------------------ #
 
                 highlighted_refined_text = highlight_text(refined_text, highlights_to_show)
