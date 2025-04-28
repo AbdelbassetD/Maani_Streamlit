@@ -1,6 +1,7 @@
 import logging
 import time
 from typing import List, Optional
+import streamlit as st
 
 from core.llm_client import LLMClient
 from config.prompts import get_cultural_gap_analysis_prompt
@@ -60,12 +61,7 @@ def generate_cultural_gap_analysis(
     generated_time_ms = int((end_time - start_time) * 1000)
 
     # --- START DEBUGGING --- #
-    # Temporarily remove multi-line print to isolate syntax error
-    # print(f"DEBUG: LLM Raw Response (Cultural Gap):
-# ---
-# {response_text}
-# ---")
-    print(f"DEBUG: LLM Raw Response (Cultural Gap Length): {len(response_text) if response_text else 0}") # Print length instead
+    st.text(f"DEBUG: LLM Raw Response (Cultural Gap Length): {len(response_text) if response_text else 0}")
     # --- END DEBUGGING --- #
 
     if not response_text:
@@ -74,7 +70,7 @@ def generate_cultural_gap_analysis(
 
     raw_json_data = extract_json(response_text)
     # --- START DEBUGGING --- #
-    print(f"DEBUG: Extracted JSON Data (Cultural Gap): {raw_json_data}")
+    st.text(f"DEBUG: Extracted JSON Data (Cultural Gap): {raw_json_data}")
     # --- END DEBUGGING --- #
 
     gap_list = []
@@ -85,7 +81,7 @@ def generate_cultural_gap_analysis(
         # Case 1: Correct structure { "gaps": [...], "overallStrategy": ..., ... }
         if 'gaps' in raw_json_data and isinstance(raw_json_data['gaps'], list):
             # --- START DEBUGGING --- #
-            print("DEBUG: Parsing Case 1 - Correct Structure")
+            st.text("DEBUG: Parsing Case 1 - Correct Structure")
             # --- END DEBUGGING --- #
             gap_list = raw_json_data.get('gaps', [])
             overall_strategy = str(raw_json_data.get('overallStrategy', DEFAULT_STRATEGY))
@@ -99,7 +95,7 @@ def generate_cultural_gap_analysis(
         # Case 2: Single gap object returned directly {...}
         elif 'name' in raw_json_data: # Heuristic: If it looks like a gap object itself
             # --- START DEBUGGING --- #
-            print("DEBUG: Parsing Case 2 - Single Gap Object")
+            st.text("DEBUG: Parsing Case 2 - Single Gap Object")
             # --- END DEBUGGING --- #
             logging.warning("LLM returned a single gap object instead of the expected structure. Processing as a single gap.")
             gap_list = [raw_json_data]
@@ -109,7 +105,7 @@ def generate_cultural_gap_analysis(
         else:
             # Dictionary format is wrong
             # --- START DEBUGGING --- #
-            print("DEBUG: Parsing Case Failed - Dictionary format wrong")
+            st.text("DEBUG: Parsing Case Failed - Dictionary format wrong")
             # --- END DEBUGGING --- #
             logging.warning(f"Failed to parse cultural gap JSON structure. Using fallback. JSON: {raw_json_data}")
             return CulturalGapAnalysis(gaps=FALLBACK_CULTURAL_GAPS, overallStrategy=DEFAULT_STRATEGY, effectivenessRating=DEFAULT_CULTURAL_EFFECTIVENESS)
@@ -117,7 +113,7 @@ def generate_cultural_gap_analysis(
     elif isinstance(raw_json_data, list):
         # Case 3: LLM returned just a list of gaps [...] (less likely but possible)
         # --- START DEBUGGING --- #
-        print("DEBUG: Parsing Case 3 - List of Gaps")
+        st.text("DEBUG: Parsing Case 3 - List of Gaps")
         # --- END DEBUGGING --- #
         logging.warning("LLM returned a list of gaps instead of the expected structure. Processing list directly.")
         gap_list = raw_json_data
@@ -127,7 +123,7 @@ def generate_cultural_gap_analysis(
     else:
         # Not a dict or list, parsing failed
         # --- START DEBUGGING --- #
-        print("DEBUG: Parsing Case Failed - Not Dict or List")
+        st.text("DEBUG: Parsing Case Failed - Not Dict or List")
         # --- END DEBUGGING --- #
         logging.warning(f"Failed to parse cultural gap JSON response (not dict or list). Using fallback. Raw Response: {response_text[:200]}...")
         return CulturalGapAnalysis(gaps=FALLBACK_CULTURAL_GAPS, overallStrategy=DEFAULT_STRATEGY, effectivenessRating=DEFAULT_CULTURAL_EFFECTIVENESS)
@@ -135,9 +131,9 @@ def generate_cultural_gap_analysis(
     processed_gaps: List[CulturalGap] = []
     try:
         # Validate and process gaps from the extracted gap_list
-        print(f"DEBUG: Starting loop. Gap List Length: {len(gap_list)}") # DEBUG
+        st.text(f"DEBUG: Starting loop. Gap List Length: {len(gap_list)}")
         for i, gap_data in enumerate(gap_list):
-            print(f"DEBUG: Processing Gap {i}: {gap_data}") # DEBUG
+            st.text(f"DEBUG: Processing Gap {i}: {gap_data}")
             if not isinstance(gap_data, dict) or not all(k in gap_data for k in ['name', 'category', 'description', 'translationStrategy', 'sourceText', 'targetText']):
                 logging.warning(f"Gap data {i} is invalid or missing keys. Skipping.")
                 continue
@@ -145,11 +141,11 @@ def generate_cultural_gap_analysis(
             source_text = str(gap_data.get('sourceText', '')).strip()
             target_text = str(gap_data.get('targetText', '')).strip()
 
-            print(f"DEBUG: Finding source match for: '{source_text}'") # DEBUG
+            st.text(f"DEBUG: Finding source match for: '{source_text}'")
             source_loc = find_best_match(source_text, arabic_text) if source_text else None
-            print(f"DEBUG: Finding target match for: '{target_text}'") # DEBUG
+            st.text(f"DEBUG: Finding target match for: '{target_text}'")
             target_loc = find_best_match(target_text, refined_translation) if target_text else None
-            print(f"DEBUG: Match results - Source: {source_loc}, Target: {target_loc}") # DEBUG
+            st.text(f"DEBUG: Match results - Source: {source_loc}, Target: {target_loc}")
 
             # If the LLM provided text but we couldn't find it, skip the gap for highlighting.
             if source_text and not source_loc:
@@ -160,7 +156,7 @@ def generate_cultural_gap_analysis(
                  continue # Skip this gap
 
             # Only add if we successfully processed (which now implies locations were found or text was empty)
-            print(f"DEBUG: Appending processed gap {i}") # DEBUG
+            st.text(f"DEBUG: Appending processed gap {i}")
             processed_gaps.append(CulturalGap(
                 name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
                 category=str(gap_data.get('category', 'Unknown')),
@@ -171,7 +167,7 @@ def generate_cultural_gap_analysis(
             ))
 
         # Note: overallStrategy and effectiveness_rating are handled during initial parsing
-        print(f"DEBUG: Finished loop. Processed Gaps Count: {len(processed_gaps)}") # DEBUG
+        st.text(f"DEBUG: Finished loop. Processed Gaps Count: {len(processed_gaps)}")
 
         return CulturalGapAnalysis(
             gaps=processed_gaps, # Return the processed gaps without forcing count

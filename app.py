@@ -454,17 +454,17 @@ else:
 
 # Display results progressively or when completed
 # --- DEBUG: Show the raw result object ---
-# if st.session_state.get("translation_result"):
-#     st.subheader("DEBUG: Raw Translation Result Object")
-#     try:
-#         # Convert dataclass to dict before passing to st.json
-#         result_dict = dataclasses.asdict(st.session_state.translation_result)
-#         st.json(result_dict)
-#     except Exception as e:
-#         st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
-#         # Fallback: print the object representation
-#         st.text(repr(st.session_state.translation_result))
-#     st.divider()
+if st.session_state.get("translation_result"):
+    st.subheader("DEBUG: Raw Translation Result Object")
+    try:
+        # Convert dataclass to dict before passing to st.json
+        result_dict = dataclasses.asdict(st.session_state.translation_result)
+        st.json(result_dict)
+    except Exception as e:
+        st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
+        # Fallback: print the object representation
+        st.text(repr(st.session_state.translation_result))
+    st.divider()
 # --- END DEBUG ---
 
 if st.session_state.translation_result:
@@ -520,7 +520,9 @@ if st.session_state.translation_result:
                 highlights_to_show.sort(key=lambda x: x[0].start)
 
                 # --- START DEBUGGING --- #
-                print(f"DEBUG: Highlights being passed to highlight_text: {highlights_to_show}")
+                # Ensure this uses st.text or st.write for live app debugging
+                # print(f"DEBUG: Highlights being passed to highlight_text: {highlights_to_show}")
+                st.text(f"DEBUG (Highlight Input): {highlights_to_show}")
                 # --- END DEBUGGING --- #
 
                 highlighted_refined_text = highlight_text(result.refinedTranslation.text, highlights_to_show)

@@ -1,6 +1,7 @@
 import logging
 import time
 from typing import List, Optional
+import streamlit as st
 
 from core.llm_client import LLMClient
 from config.prompts import get_linguistic_nuance_prompt
@@ -53,7 +54,7 @@ def generate_linguistic_nuances(
     logging.info(f"Linguistic nuance analysis generated in {end_time - start_time:.2f}s")
 
     # --- START DEBUGGING --- #
-    print(f"DEBUG: LLM Raw Response (Nuance Length): {len(response_text) if response_text else 0}") # Print length instead
+    st.text(f"DEBUG: LLM Raw Response (Nuance Length): {len(response_text) if response_text else 0}")
     # --- END DEBUGGING --- #
 
     if not response_text:
@@ -62,7 +63,7 @@ def generate_linguistic_nuances(
 
     nuances_json = extract_json(response_text)
     # --- START DEBUGGING --- #
-    print(f"DEBUG: Extracted JSON Data (Nuance): {nuances_json}")
+    st.text(f"DEBUG: Extracted JSON Data (Nuance): {nuances_json}")
     # --- END DEBUGGING --- #
 
     if not nuances_json or not isinstance(nuances_json, list):
@@ -71,9 +72,9 @@ def generate_linguistic_nuances(
 
     processed_nuances: List[LinguisticNuance] = []
     try:
-        print(f"DEBUG: Starting Nuance loop. JSON List Length: {len(nuances_json)}") # DEBUG
+        st.text(f"DEBUG: Starting Nuance loop. JSON List Length: {len(nuances_json)}")
         for i, nuance_data in enumerate(nuances_json):
-            print(f"DEBUG: Processing Nuance {i}: {nuance_data}") # DEBUG
+            st.text(f"DEBUG: Processing Nuance {i}: {nuance_data}")
             if not isinstance(nuance_data, dict) or not all(k in nuance_data for k in ['text', 'explanation', 'category', 'targetLocation']):
                  logging.warning(f"Nuance data {i} is invalid or missing keys. Skipping: {nuance_data}")
                  continue
@@ -86,10 +87,10 @@ def generate_linguistic_nuances(
             target_loc_data = nuance_data.get('targetLocation')
             target_loc: Optional[TextLocation] = None
 
-            print(f"DEBUG: Finding nuance target match for: '{text_to_find}'") # DEBUG
+            st.text(f"DEBUG: Finding nuance target match for: '{text_to_find}'")
             # Simplified logic: Use find_best_match first. LLM location is secondary.
             match_loc = find_best_match(text_to_find, refined_translation)
-            print(f"DEBUG: Nuance match result: {match_loc}") # DEBUG
+            st.text(f"DEBUG: Nuance match result: {match_loc}")
 
             if match_loc:
                  target_loc = match_loc
@@ -103,7 +104,7 @@ def generate_linguistic_nuances(
             # Only add if we found a location via find_best_match
             # (The condition 'if target_loc:' below handles this)
             if target_loc:
-                print(f"DEBUG: Appending processed nuance {i}") # DEBUG
+                st.text(f"DEBUG: Appending processed nuance {i}")
                 processed_nuances.append(LinguisticNuance(
                     text=text_to_find,
                     explanation=str(nuance_data.get('explanation', 'N/A')),
@@ -114,7 +115,7 @@ def generate_linguistic_nuances(
             else:
                 logging.warning(f"Could not determine target location for nuance: '{text_to_find}'. Skipping.")
 
-        print(f"DEBUG: Finished Nuance loop. Processed Nuances Count: {len(processed_nuances)}") # DEBUG
+        st.text(f"DEBUG: Finished Nuance loop. Processed Nuances Count: {len(processed_nuances)}")
         return processed_nuances
 
     except Exception as e:
