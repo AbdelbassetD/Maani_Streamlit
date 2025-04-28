@@ -563,86 +563,6 @@ if st.session_state.translation_result:
         # --- Feedback Section ---
         st.divider()
 
-        # --- NEW Row: Display Details Based on Selection --- #
-        # Use the pre-processed displayable_gaps/nuances lists for details
-        highlight_details_type = st.session_state.highlight_display_type
-
-        if highlight_details_type == "Cultural Gaps":
-             # Display details using the processed 'displayable_gaps'
-             if result.culturalGapAnalysis and result.culturalGapAnalysis.gaps: # Check if the list was populated
-                 with st.container(border=True):
-                     st.markdown("##### Cultural Gap Analysis (Details)")
-                     # Display overall strategy etc. from the analysis object if needed
-                     if result.culturalGapAnalysis:
-                          st.markdown(f"**Overall Strategy:** {result.culturalGapAnalysis.overallStrategy}")
-                          st.metric("Overall Effectiveness", f"{result.culturalGapAnalysis.effectivenessRating}/10")
-
-                     st.markdown("**Identified Gaps (with color key):**")
-                     for i, gap in enumerate(result.culturalGapAnalysis.gaps):
-                         gap_color = generate_distinct_color(i, base_hue=0)
-                         st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                     f'**{i+1}. {gap.name} ({gap.category.capitalize()})**', unsafe_allow_html=True)
-
-                        # Display Source Text if location exists (unused for now)
-                        #  if gap.sourceLocation and result.inputText and result.inputText.arabicText:
-                        #      try:
-                        #          # Validate indices before slicing
-                        #          text_len = len(result.inputText.arabicText)
-                        #          start = gap.sourceLocation.start
-                        #          end = gap.sourceLocation.end
-                        #          if 0 <= start <= end <= text_len: # Ensure start <= end and within bounds
-                        #              source_snippet = result.inputText.arabicText[start:end]
-                        #              st.markdown(f"   - **Source Snippet:** `{source_snippet}`")
-                        #          else:
-                        #              st.caption(f"   - _Source location indices invalid ({start}-{end}) for text length {text_len}._")
-                        #      except Exception as e:
-                        #          logging.warning(f"Error displaying source snippet for gap {i}: {e}")
-                        #          st.caption("   - _Error displaying source snippet._")
-                        #  else:
-                        #       st.caption("   - _Source location not available._")
-
-                         st.markdown(f"   - **Challenge:** {gap.description}")
-                         st.markdown(f"   - **Strategy:** {gap.translationStrategy}")
-                         snippet_parts = []
-                         # Use original result data for snippets
-                         if gap.sourceLocation and result.inputText.arabicText:
-                              snippet_parts.append(f"_Source: ...{result.inputText.arabicText[gap.sourceLocation.start:gap.sourceLocation.end]}..._")
-                         if gap.targetLocation and result.refinedTranslation:
-                              snippet_parts.append(f"_Target: ...{result.refinedTranslation.text[gap.targetLocation.start:gap.targetLocation.end]}..._")
-                         if snippet_parts:
-                              st.caption(" | ".join(snippet_parts))
-                         st.markdown("---") # Separator
-
-                     if result.culturalGapAnalysis and result.culturalGapAnalysis.generatedTime:
-                          st.caption(f"Generated in {result.culturalGapAnalysis.generatedTime} ms")
-             elif result.culturalGapAnalysis: # Analysis exists but maybe no displayable gaps (e.g., no targetLocation)
-                 with st.container(border=True):
-                     st.markdown("##### Cultural Gap Analysis (Details)")
-                     st.info("No cultural gaps identified that could be highlighted in the text.")
-                     if result.culturalGapAnalysis.generatedTime:
-                          st.caption(f"Generated in {result.culturalGapAnalysis.generatedTime} ms")
-             # else: show processing or N/A message if analysis itself is missing
-
-        elif highlight_details_type == "Linguistic Nuances":
-             # Display details using the processed 'displayable_nuances'
-             if result.refinedTranslation and result.refinedTranslation.linguisticNuances:
-                 with st.container(border=True):
-                     st.markdown("##### Linguistic Nuances (Details)")
-                     st.markdown("**Identified Nuances (with color key):**")
-                     for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
-                         nuance_color = generate_distinct_color(i, base_hue=200)
-                         st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                     f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
-                         st.markdown(f"   > {nuance.explanation}")
-                         st.markdown("---") # Separator
-             elif result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
-                 # Handle case where nuance list exists but might be empty or have no targetLocations
-                 with st.container(border=True):
-                      st.markdown("##### Linguistic Nuances (Details)")
-                      st.info("No linguistic nuances identified that could be highlighted in the text.")
-             # else: show processing or N/A message if nuance analysis is missing
-
-
         # --- Row 2 (Now Row 3): Context & Evaluation --- #
         # This section remains the same, displaying Context and Evaluation side-by-side
         if result.contextAnalysis or result.evaluation:
@@ -682,6 +602,104 @@ if st.session_state.translation_result:
                               st.caption(f"Generated in {eval_data.generatedTime} ms")
                     else:
                         st.markdown("_Processing..._")
+
+        # --- Row 3 (Now Row 4): Cultural Gap/Nuance Details (Modified for Editing) --- #
+        if 'editable_gaps' in st.session_state and st.session_state.editable_gaps is not None:
+             if highlight_type == "Cultural Gaps":
+                  with st.container(border=True):
+                      st.markdown("##### Cultural Gap Analysis (Editable Details)")
+                      if st.session_state.editable_gaps: # Check if list is not empty
+                           st.markdown("**Identified Gaps (Edit Details Below):**")
+                           # Iterate through the editable list in session state
+                           for i, gap_dict in enumerate(st.session_state.editable_gaps):
+                                item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}" # Use original index for stable key
+                                gap_color = generate_distinct_color(i, base_hue=0)
+                                st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
+                                            f'**Gap {i+1}**', unsafe_allow_html=True)
+
+                                # --- Use Input Widgets --- #
+                                gap_dict['name'] = st.text_input(
+                                    f"Name##{item_key_base}",
+                                    value=gap_dict['name'],
+                                    key=f"{item_key_base}_name",
+                                    label_visibility="collapsed"
+                                )
+                                gap_dict['category'] = st.text_input(
+                                    f"Category##{item_key_base}",
+                                    value=gap_dict['category'],
+                                    key=f"{item_key_base}_category",
+                                    label_visibility="collapsed"
+                                )
+                                gap_dict['description'] = st.text_area(
+                                    f"Description##{item_key_base}",
+                                    value=gap_dict['description'],
+                                    key=f"{item_key_base}_description",
+                                    height=100,
+                                    label_visibility="collapsed"
+                                )
+                                gap_dict['translationStrategy'] = st.text_input(
+                                    f"Strategy##{item_key_base}",
+                                    value=gap_dict['translationStrategy'],
+                                    key=f"{item_key_base}_strategy",
+                                    label_visibility="collapsed"
+                                )
+                                # ------------------------ #
+
+                                # Display Source/Target Snippets (Read-only)
+                                source_loc = gap_dict.get('sourceLocation')
+                                target_loc = gap_dict.get('targetLocation')
+
+                                if source_loc and result.inputText and result.inputText.arabicText:
+                                    try:
+                                        text_len = len(result.inputText.arabicText)
+                                        start = source_loc.start
+                                        end = source_loc.end
+                                        if 0 <= start <= end <= text_len:
+                                            source_snippet = result.inputText.arabicText[start:end]
+                                            st.caption(f"Source Snippet: `{source_snippet}`")
+                                        else:
+                                            st.caption(f"_Source location invalid ({start}-{end})_ ")
+                                    except Exception as e:
+                                        st.caption("_Error displaying source snippet._")
+                                else:
+                                    st.caption("_Source location not available._")
+
+                                if target_loc and result.refinedTranslation and result.refinedTranslation.text:
+                                    try:
+                                        text_len = len(result.refinedTranslation.text)
+                                        start = target_loc.start
+                                        end = target_loc.end
+                                        if 0 <= start <= end <= text_len:
+                                            target_snippet = result.refinedTranslation.text[start:end]
+                                            st.caption(f"Target Snippet: `{target_snippet}`")
+                                        else:
+                                            st.caption(f"_Target location invalid ({start}-{end})_ ")
+                                    except Exception as e:
+                                        st.caption("_Error displaying target snippet._")
+                                else:
+                                    st.caption("_Target location not available._")
+
+                                st.markdown("---") # Separator
+                      else:
+                          st.info("No cultural gaps identified or processed.")
+
+                 # Keep Linguistic Nuance display as read-only for now
+                 elif highlight_type == "Linguistic Nuances":
+                      if result.refinedTranslation and result.refinedTranslation.linguisticNuances:
+                          with st.container(border=True):
+                              st.markdown("##### Linguistic Nuances (Details)")
+                              st.markdown("**Identified Nuances (with color key):**")
+                              for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
+                                  nuance_color = generate_distinct_color(i, base_hue=200)
+                                  st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
+                                              f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
+                                  st.markdown(f"   > {nuance.explanation}")
+                                  st.markdown("---") # Separator
+                      elif result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
+                          with st.container(border=True):
+                               st.markdown("##### Linguistic Nuances (Details)")
+                               st.info("No linguistic nuances identified that could be highlighted in the text.")
+                      # else: show processing or N/A message if nuance analysis is missing
 
         # --- Footer --- #
         # Add footer or final message
