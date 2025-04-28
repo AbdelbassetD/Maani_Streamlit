@@ -628,6 +628,7 @@ if st.session_state.translation_result:
                      if st.session_state.editable_gaps: # Check if list is not empty
                           st.markdown("**Identified Gaps:**")
                           # Iterate through the editable list in session state
+
                           for i, gap_dict in enumerate(st.session_state.editable_gaps):
                                item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}"
                                gap_color = generate_distinct_color(i, base_hue=0)
