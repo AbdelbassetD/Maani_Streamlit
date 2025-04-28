@@ -633,7 +633,7 @@ if st.session_state.translation_result:
                                item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}"
                                gap_color = generate_distinct_color(i, base_hue=0)
                                st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                     f'**{i+1}. {gap.name} ({gap.category.capitalize()})**', unsafe_allow_html=True)
+                                     f'**{i+1}. {gap_dict['name']} ({gap.category.capitalize()})**', unsafe_allow_html=True)
 
                                # --- Conditional Display: Edit vs Read-Only --- #
                                if is_editing:
