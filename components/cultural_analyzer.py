@@ -2,6 +2,7 @@ import logging
 import time
 from typing import List, Optional
 import streamlit as st
+import re # Import regex module
 
 from core.llm_client import LLMClient
 from config.prompts import get_cultural_gap_analysis_prompt
@@ -111,24 +112,26 @@ def generate_cultural_gap_analysis(
                 logging.warning(f"Gap data {i} is invalid or missing keys. Skipping.")
                 continue
 
-            source_text = str(gap_data.get('sourceText', '')).strip()
+            raw_source_text = str(gap_data.get('sourceText', '')).strip()
             target_text = str(gap_data.get('targetText', '')).strip()
 
-            st.text(f"DEBUG: Finding source match for: '{source_text}'")
-            source_loc = find_best_match(source_text, arabic_text) if source_text else None
-            st.text(f"DEBUG: Match results - Source: {source_loc}")
+            # --- Clean source text: Remove parenthetical additions --- #
+            cleaned_source_text = raw_source_text
+            if raw_source_text and '(' in raw_source_text and ')' in raw_source_text:
+                cleaned_source_text = re.sub(r'\s*\(.*?\)\s*$', '', raw_source_text).strip()
+                # Log if cleaning occurred
+                if cleaned_source_text != raw_source_text:
+                    logging.info(f"Cleaned source text for matching: '{raw_source_text}' -> '{cleaned_source_text}'")
+            # --- End Cleaning --- #
 
-            st.text(f"DEBUG: Finding target match for: '{target_text}'")
+            # Use CLEANED source text for matching
+            source_loc = find_best_match(cleaned_source_text, arabic_text) if cleaned_source_text else None
             target_loc = find_best_match(target_text, refined_translation) if target_text else None
-            st.text(f"DEBUG: Match results - Source: {source_loc}, Target: {target_loc}")
+            # st.text(f"DEBUG: Match results - Source: {source_loc}, Target: {target_loc}") # Keep debug comments
 
-            gap_description = str(gap_data.get('description', 'N/A')) # Get original description
-
-            # Log if source match failed AND add failed text to description for UI debugging
-            if source_text and not source_loc:
-                fail_log = f"Could not confidently locate source text \"{source_text}\" in original arabic text. Source location will be null for gap {i}."
-                logging.warning(fail_log)
-                gap_description += f" [DEBUG: Failed to find source='{source_text}']" # Append for UI visibility
+            # Log if source match failed *after cleaning*
+            if cleaned_source_text and not source_loc:
+                logging.warning(f"Could not confidently locate cleaned source text \"{cleaned_source_text}\" (Original LLM: \"{raw_source_text}\") in original arabic text. Source location will be null for gap {i}.")
 
             # If the LLM provided text but we couldn't find the TARGET text, skip the gap.
             # It's okay if source_loc is None, we just won't display the source snippet.
@@ -137,12 +140,11 @@ def generate_cultural_gap_analysis(
                  continue # Skip this gap
 
             # Only add if we successfully processed (target_loc might be None if target_text was empty)
-            # Gap is appended regardless of whether source_loc was found, but sourceLocation might be None
-            st.text(f"DEBUG: Appending processed gap {i} (SourceLoc: {source_loc}, TargetLoc: {target_loc})")
+            # st.text(f"DEBUG: Appending processed gap {i} (SourceLoc: {source_loc}, TargetLoc: {target_loc})") # Keep debug comments
             processed_gaps.append(CulturalGap(
                 name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
                 category=str(gap_data.get('category', 'Unknown')),
-                description=gap_description, # Use modified description
+                description=str(gap_data.get('description', 'N/A')), # Use original description
                 translationStrategy=str(gap_data.get('translationStrategy', 'N/A')),
                 sourceLocation=source_loc,
                 targetLocation=target_loc,
