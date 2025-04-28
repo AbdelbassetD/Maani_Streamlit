@@ -52,18 +52,31 @@ def generate_linguistic_nuances(
     end_time = time.time()
     logging.info(f"Linguistic nuance analysis generated in {end_time - start_time:.2f}s")
 
+    # --- START DEBUGGING --- #
+    print(f"DEBUG: LLM Raw Response (Nuance):
+---
+{response_text}
+---")
+    # --- END DEBUGGING --- #
+
     if not response_text:
         logging.warning("Failed to get linguistic nuances from LLM. Using fallback.")
         return _get_adjusted_fallback_nuances(refined_translation)
 
     nuances_json = extract_json(response_text)
+    # --- START DEBUGGING --- #
+    print(f"DEBUG: Extracted JSON Data (Nuance): {nuances_json}")
+    # --- END DEBUGGING --- #
+
     if not nuances_json or not isinstance(nuances_json, list):
         logging.warning(f"Failed to parse linguistic nuances JSON or not a list. Using fallback. Raw: {response_text[:200]}")
         return _get_adjusted_fallback_nuances(refined_translation)
 
     processed_nuances: List[LinguisticNuance] = []
     try:
+        print(f"DEBUG: Starting Nuance loop. JSON List Length: {len(nuances_json)}") # DEBUG
         for i, nuance_data in enumerate(nuances_json):
+            print(f"DEBUG: Processing Nuance {i}: {nuance_data}") # DEBUG
             if not isinstance(nuance_data, dict) or not all(k in nuance_data for k in ['text', 'explanation', 'category', 'targetLocation']):
                  logging.warning(f"Nuance data {i} is invalid or missing keys. Skipping: {nuance_data}")
                  continue
@@ -76,44 +89,24 @@ def generate_linguistic_nuances(
             target_loc_data = nuance_data.get('targetLocation')
             target_loc: Optional[TextLocation] = None
 
-            if isinstance(target_loc_data, dict) and 'start' in target_loc_data and 'end' in target_loc_data:
-                try:
-                     # Validate start/end from JSON
-                     start = int(target_loc_data['start'])
-                     end = int(target_loc_data['end'])
+            print(f"DEBUG: Finding nuance target match for: '{text_to_find}'") # DEBUG
+            # Simplified logic: Use find_best_match first. LLM location is secondary.
+            match_loc = find_best_match(text_to_find, refined_translation)
+            print(f"DEBUG: Nuance match result: {match_loc}") # DEBUG
 
-                     # Basic sanity check on indices
-                     if 0 <= start <= end <= len(refined_translation):
-                          # Verify the text at the location roughly matches the expected text
-                          extracted_text = refined_translation[start:end]
-                          # Use find_best_match for robust comparison (handles minor variations)
-                          match_within_extracted = find_best_match(text_to_find, extracted_text)
-
-                          # If the expected text is found reasonably well within the slice defined by JSON indices...
-                          if match_within_extracted and (match_within_extracted.end - match_within_extracted.start) >= 0.8 * len(text_to_find):
-                              # Trust the JSON indices if they capture the text well
-                              target_loc = TextLocation(start=start, end=end)
-                              logging.debug(f"Nuance {i}: Using validated indices ({start}-{end}) for '{text_to_find}'")
-                          else:
-                              # JSON indices might be off, search the whole text for the specific text
-                              logging.warning(f"Nuance {i}: Text '{text_to_find}' not found well at JSON indices ({start}-{end}). Searching full text.")
-                              target_loc = find_best_match(text_to_find, refined_translation)
-                     else:
-                         # JSON indices are out of bounds
-                         logging.warning(f"Nuance {i}: Invalid indices from JSON: start={start}, end={end}, text_len={len(refined_translation)}. Searching full text.")
-                         target_loc = find_best_match(text_to_find, refined_translation)
-
-                except (ValueError, TypeError) as e:
-                     # Error parsing JSON indices
-                     logging.warning(f"Error processing targetLocation JSON for nuance {i}: {e}. Searching full text.")
-                     target_loc = find_best_match(text_to_find, refined_translation)
+            if match_loc:
+                 target_loc = match_loc
+                 # Optional: Could add logging here comparing match_loc to target_loc_data if needed
             else:
-                # Location data missing or invalid in JSON, search the whole text
-                logging.warning(f"Nuance data {i} missing/invalid targetLocation. Searching full text for '{text_to_find}'.")
-                target_loc = find_best_match(text_to_find, refined_translation)
+                 # If fuzzy match failed, maybe try the LLM's provided indices directly?
+                 # For now, we prioritize fuzzy match. If it fails, we skip.
+                 logging.warning(f"Could not confidently locate target text '{text_to_find}' for nuance {i}. Skipping.")
+                 continue # Skip if fuzzy match failed
 
-            # Only add if we found a location
+            # Only add if we found a location via find_best_match
+            # (The condition 'if target_loc:' below handles this)
             if target_loc:
+                print(f"DEBUG: Appending processed nuance {i}") # DEBUG
                 processed_nuances.append(LinguisticNuance(
                     text=text_to_find,
                     explanation=str(nuance_data.get('explanation', 'N/A')),
@@ -124,6 +117,7 @@ def generate_linguistic_nuances(
             else:
                 logging.warning(f"Could not determine target location for nuance: '{text_to_find}'. Skipping.")
 
+        print(f"DEBUG: Finished Nuance loop. Processed Nuances Count: {len(processed_nuances)}") # DEBUG
         return processed_nuances
 
     except Exception as e:

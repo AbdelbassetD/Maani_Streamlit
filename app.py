@@ -518,6 +518,11 @@ if st.session_state.translation_result:
 
                 # Sort highlights before applying
                 highlights_to_show.sort(key=lambda x: x[0].start)
+
+                # --- START DEBUGGING --- #
+                print(f"DEBUG: Highlights being passed to highlight_text: {highlights_to_show}")
+                # --- END DEBUGGING --- #
+
                 highlighted_refined_text = highlight_text(result.refinedTranslation.text, highlights_to_show)
 
                 # Display without blockquote
