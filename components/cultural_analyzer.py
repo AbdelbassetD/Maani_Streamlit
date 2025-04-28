@@ -147,16 +147,14 @@ def generate_cultural_gap_analysis(
             target_loc = find_best_match(target_text, refined_translation) if target_text else None
             st.text(f"DEBUG: Match results - Source: {source_loc}, Target: {target_loc}")
 
-            # If the LLM provided text but we couldn't find it, skip the gap for highlighting.
-            if source_text and not source_loc:
-                 logging.warning(f"Could not confidently locate source text '{source_text}' provided by LLM for gap '{gap_data.get('name', 'N/A')}'. Skipping gap.")
-                 continue # Skip this gap
+            # If the LLM provided text but we couldn't find the TARGET text, skip the gap.
+            # It's okay if source_loc is None, we just won't display the source snippet.
             if target_text and not target_loc:
                  logging.warning(f"Could not confidently locate target text '{target_text}' provided by LLM for gap '{gap_data.get('name', 'N/A')}'. Skipping gap.")
                  continue # Skip this gap
 
-            # Only add if we successfully processed (which now implies locations were found or text was empty)
-            st.text(f"DEBUG: Appending processed gap {i}")
+            # Only add if we successfully processed (target_loc might be None if target_text was empty)
+            st.text(f"DEBUG: Appending processed gap {i} (SourceLoc: {source_loc}, TargetLoc: {target_loc})")
             processed_gaps.append(CulturalGap(
                 name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
                 category=str(gap_data.get('category', 'Unknown')),

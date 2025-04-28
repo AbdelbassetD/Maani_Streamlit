@@ -16,6 +16,7 @@ import google.generativeai as genai
 from core.llm_client import LLMClient
 from core.translation_orchestrator import TranslationOrchestrator
 from shared_types import TranslationResult, InputText, TranslationStep, LinguisticNuance, CulturalGap, TextLocation
+from utils.helpers import extract_json, find_best_match
 
 # --- Feedback Logging Setup ---
 FEEDBACK_LOG_FILE = "feedback_log.jsonl" # Use JSON Lines format
@@ -126,71 +127,64 @@ def display_evaluation_scores(label: str, scores):
 # Simple highlighter function (replace with more robust solution if needed)
 def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) -> str:
     """Highlights text segments with tooltips. locations is List[(location, color, tooltip)]"""
-    if not locations or not isinstance(text, str) or not text:
-        # Return empty string if text is empty or None, or if no locations
+
+    # --- START DEBUGGING: Simple Output --- #
+    if locations and isinstance(text, str):
+        # If there are locations, just prepend a simple colored block to the text
+        # Use the color from the first location for simplicity
+        debug_color = locations[0][1] if locations and len(locations[0]) > 1 else "#FFCC00" # Fallback yellow
+        print(f"DEBUG highlight_text: Received {len(locations)} locations. Applying debug marker.")
+        return f'<span style="background-color:{debug_color}; padding: 2px 6px; border-radius: 3px; color: black; font-weight: bold;">HIGHLIGHTED</span> {text}'
+    else:
+        print(f"DEBUG highlight_text: No locations received or text invalid.")
         return text if isinstance(text, str) else ""
+    # --- END DEBUGGING: Simple Output --- #
 
-    text_len = len(text)
-    highlighted_parts = []
-    last_end = 0
-
-    # Sort locations by start index to handle potential overlaps correctly
-    try:
-        # Ensure sorting doesn't fail if location objects are malformed
-        locations.sort(key=lambda x: x[0].start if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') else 0)
-    except Exception as e:
-        print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
-        return text # Return original text if sorting fails
-
-    for loc_tuple in locations:
-        # Check tuple structure
-        if not isinstance(loc_tuple, tuple) or len(loc_tuple) != 3:
-            print(f"Skipping invalid location tuple format: {loc_tuple}")
-            continue
-
-        loc, color, tooltip = loc_tuple
-
-        # Ensure loc is valid and has attributes
-        if not isinstance(loc, TextLocation) or not hasattr(loc, 'start') or not hasattr(loc, 'end'):
-            print(f"Skipping invalid/incomplete TextLocation object: {loc}")
-            continue
-
-        start, end = loc.start, loc.end
-
-        # --- Robust Index Validation --- #
-        if not (isinstance(start, int) and isinstance(end, int)):
-            print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)}) TextLen={text_len}")
-            continue
-        if not (0 <= start <= text_len and 0 <= end <= text_len):
-            print(f"Skipping out-of-bounds indices: start={start}, end={end}, TextLen={text_len}")
-            continue
-        if start > end:
-            print(f"Skipping invalid range (start > end): start={start}, end={end}, TextLen={text_len}")
-            continue
-        # --- End Validation --- #
-
-        # Avoid overlapping highlights - if current start is before last end, adjust start
-        start = max(start, last_end)
-        # Re-check validity after adjustment
-        if start >= end:
-             continue
-
-        # Add text before the highlight (slice safely)
-        highlighted_parts.append(text[last_end:start])
-
-        # Add the highlighted segment with tooltip (slice safely)
-        highlighted_segment = text[start:end]
-        # Escaping tooltip
-        safe_tooltip = str(tooltip).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ")
-        highlighted_parts.append(
-            f'<span style="background-color: {color}; padding: 2px 4px; border-radius: 3px;" title="{safe_tooltip}">{highlighted_segment}</span>'
-        )
-        last_end = end
-
-    # Add any remaining text (slice safely)
-    highlighted_parts.append(text[last_end:])
-
-    return "".join(highlighted_parts)
+    # --- Original Logic (Commented Out for Debugging) --- #
+    # if not locations or not isinstance(text, str) or not text:
+    #     return text if isinstance(text, str) else ""
+    #
+    # text_len = len(text)
+    # highlighted_parts = []
+    # last_end = 0
+    #
+    # try:
+    #     locations.sort(key=lambda x: x[0].start if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') else 0)
+    # except Exception as e:
+    #     print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
+    #     return text
+    #
+    # for loc_tuple in locations:
+    #     if not isinstance(loc_tuple, tuple) or len(loc_tuple) != 3:
+    #         print(f"Skipping invalid location tuple format: {loc_tuple}")
+    #         continue
+    #     loc, color, tooltip = loc_tuple
+    #     if not isinstance(loc, TextLocation) or not hasattr(loc, 'start') or not hasattr(loc, 'end'):
+    #         print(f"Skipping invalid/incomplete TextLocation object: {loc}")
+    #         continue
+    #     start, end = loc.start, loc.end
+    #     if not (isinstance(start, int) and isinstance(end, int)):
+    #         print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)}) TextLen={text_len}")
+    #         continue
+    #     if not (0 <= start <= text_len and 0 <= end <= text_len):
+    #         print(f"Skipping out-of-bounds indices: start={start}, end={end}, TextLen={text_len}")
+    #         continue
+    #     if start > end:
+    #         print(f"Skipping invalid range (start > end): start={start}, end={end}, TextLen={text_len}")
+    #         continue
+    #     start = max(start, last_end)
+    #     if start >= end:
+    #          continue
+    #     highlighted_parts.append(text[last_end:start])
+    #     highlighted_segment = text[start:end]
+    #     safe_tooltip = str(tooltip).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ")
+    #     highlighted_parts.append(
+    #         f'<span style="background-color: {color}; padding: 2px 4px; border-radius: 3px;" title="{safe_tooltip}">{highlighted_segment}</span>'
+    #     )
+    #     last_end = end
+    # highlighted_parts.append(text[last_end:])
+    # return "".join(highlighted_parts)
+    # --- End Original Logic --- #
 
 # --- Example Texts ---
 EXAMPLE_TEXTS: Dict[str, str] = {
