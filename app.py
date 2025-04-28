@@ -524,7 +524,7 @@ if st.session_state.translation_result:
             st.info("**Refined Translation**")
             # Add radio button for selecting highlight type
             # Read directly from session state for consistency
-            highlight_type = st.session_state.highlight_display_type
+            highlight_type = st.session_state.get("highlight_display_type", "None")
             st.radio(
                 label="Show Highlights For:",
                 options=["None", "Cultural Gaps", "Linguistic Nuances"],
@@ -623,34 +623,31 @@ if st.session_state.translation_result:
 
                                    # --- Conditional Display: Edit vs Read-Only --- #
                                    if is_editing:
-                                       # --- Edit Mode --- #
-                                       st.markdown("_(Edit Mode Enabled)_", help="Fields below are editable.") # Visual Cue
-                                       gap_dict['name'] = st.text_input(
-                                           f"Name##{item_key_base}", value=gap_dict['name'], key=f"{item_key_base}_name", label_visibility="collapsed"
-                                       )
-                                       gap_dict['category'] = st.text_input(
-                                           f"Category##{item_key_base}", value=gap_dict['category'], key=f"{item_key_base}_category", label_visibility="collapsed"
-                                       )
-                                       gap_dict['description'] = st.text_area(
-                                           f"Description##{item_key_base}", value=gap_dict['description'], key=f"{item_key_base}_description", height=100, label_visibility="collapsed"
-                                       )
-                                       gap_dict['translationStrategy'] = st.text_input(
-                                           f"Strategy##{item_key_base}", value=gap_dict['translationStrategy'], key=f"{item_key_base}_strategy", label_visibility="collapsed"
-                                       )
+                                       # --- Edit Mode (No Columns) --- #
+                                       # st.markdown("_(Edit Mode Enabled)_", help="Fields below are editable.") # Optional cue removed for cleaner look
+                                       st.markdown("**Name:**")
+                                       gap_dict['name'] = st.text_input("Name", value=gap_dict['name'], key=f"{item_key_base}_name", label_visibility="collapsed")
+                                       st.markdown("**Category:**")
+                                       gap_dict['category'] = st.text_input("Category", value=gap_dict['category'], key=f"{item_key_base}_category", label_visibility="collapsed")
+                                       st.markdown("**Description:**")
+                                       gap_dict['description'] = st.text_area("Description", value=gap_dict['description'], key=f"{item_key_base}_description", height=100, label_visibility="collapsed")
+                                       st.markdown("**Strategy:**")
+                                       gap_dict['translationStrategy'] = st.text_input("Strategy", value=gap_dict['translationStrategy'], key=f"{item_key_base}_strategy", label_visibility="collapsed")
+
                                    else:
-                                       # --- Read-Only Mode --- #
+                                       # --- Read-Only Mode (Simplified Layout) --- #
                                        st.markdown(f"**Name:** {gap_dict.get('name', '_N/A_')}")
                                        st.markdown(f"**Category:** {gap_dict.get('category', '_N/A_')}")
-                                       st.markdown("**Description:**")
-                                       # Remove blockquote -> remove leading '>' character
-                                       st.markdown(f"{gap_dict.get('description', '_N/A_')}") # No more blockquote
-                                       st.markdown(f"**Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}")
+                                       st.markdown(f"**Description:** {gap_dict.get('description', '_N/A_')}") # Combined label and value
+                                       st.markdown(f"**Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}") # Combined label and value
                                    # -------------------------------------------------- #
 
-                                   # Display Source/Target Snippets (Read-only - consistent)
+                                   # Display Source/Target Snippets (Read-only - revert to combined caption)
                                    source_loc = gap_dict.get('sourceLocation')
                                    target_loc = gap_dict.get('targetLocation')
+                                   snippet_parts = []
 
+                                   # Source Snippet Logic
                                    if source_loc and result.inputText and result.inputText.arabicText:
                                        try:
                                            text_len = len(result.inputText.arabicText)
@@ -658,15 +655,12 @@ if st.session_state.translation_result:
                                            end = source_loc.end
                                            if 0 <= start < end <= text_len:
                                                source_snippet = result.inputText.arabicText[start:end]
-                                               # Use italic caption
-                                               st.caption(f"_Source Snippet: `{source_snippet}`_")
-                                           else:
-                                               st.caption(f"_Source location invalid ({start}-{end})_")
-                                       except Exception as e:
-                                           st.caption("_Error displaying source snippet._")
-                                   else:
-                                       st.caption("_Source location not available._")
+                                               snippet_parts.append(f"_Source: ...{source_snippet}..._")
+                                           # else: Optionally handle invalid source location display
+                                       except Exception:
+                                           snippet_parts.append("_Source: Error_") # Placeholder on error
 
+                                   # Target Snippet Logic
                                    if target_loc and result.refinedTranslation and result.refinedTranslation.text:
                                        try:
                                            text_len = len(result.refinedTranslation.text)
@@ -674,14 +668,17 @@ if st.session_state.translation_result:
                                            end = target_loc.end
                                            if 0 <= start < end <= text_len:
                                                target_snippet = result.refinedTranslation.text[start:end]
-                                               # Use italic caption
-                                               st.caption(f"_Target Snippet: `{target_snippet}`_")
-                                           else:
-                                               st.caption(f"_Target location invalid ({start}-{end})_")
-                                       except Exception as e:
-                                           st.caption("_Error displaying target snippet._")
-                                   else:
-                                       st.caption("_Target location not available._")
+                                               snippet_parts.append(f"_Target: ...{target_snippet}..._")
+                                           # else: Optionally handle invalid target location display
+                                       except Exception:
+                                            snippet_parts.append("_Target: Error_") # Placeholder on error
+
+                                   # Display combined caption if any parts exist
+                                   if snippet_parts:
+                                       st.caption(" | ".join(snippet_parts))
+                                   # --- Remove previous separate captions ---
+                                   # if source_loc ... st.caption(...)
+                                   # if target_loc ... st.caption(...)
 
                                    st.markdown("---") # Separator
                          else:
