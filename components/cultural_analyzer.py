@@ -95,19 +95,19 @@ def generate_cultural_gap_analysis(
                 target_loc = TextLocation(start=start, end=end)
                 logging.debug(f"Could not find target text '{target_text}'. Using fallback location {target_loc}")
 
-            processed_gaps.append(CulturalGap(
-                name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
-                category=str(gap_data.get('category', 'Unknown')),
-                description=str(gap_data.get('description', 'N/A')),
-                translationStrategy=str(gap_data.get('translationStrategy', 'N/A')),
-                sourceLocation=source_loc,
-                targetLocation=target_loc,
-            ))
-
-        # Ensure we always have exactly 3 gaps for consistency in UI, using fallbacks if needed
-        while len(processed_gaps) < 3:
-            fallback_index = len(processed_gaps)
-            processed_gaps.append(FALLBACK_CULTURAL_GAPS[fallback_index % len(FALLBACK_CULTURAL_GAPS)]) # Cycle through fallbacks
+            # Only add if we found a location
+            if target_loc:
+                processed_gaps.append(CulturalGap(
+                    name=str(gap_data.get('name', f'Unknown Gap {i+1}')),
+                    category=str(gap_data.get('category', 'Unknown')),
+                    description=str(gap_data.get('description', 'N/A')),
+                    translationStrategy=str(gap_data.get('translationStrategy', 'N/A')),
+                    sourceLocation=source_loc,
+                    targetLocation=target_loc,
+                ))
+            else:
+                logging.warning(f"Could not find source/target location for gap: '{gap_data.get('name', 'N/A')}'. Skipping gap.")
+                # Do not append if location finding failed
 
         overall_strategy = str(gap_json.get('overallStrategy', DEFAULT_STRATEGY))
         eff_rating_str = gap_json.get('effectivenessRating', str(DEFAULT_CULTURAL_EFFECTIVENESS))
@@ -119,7 +119,7 @@ def generate_cultural_gap_analysis(
             effectiveness_rating = DEFAULT_CULTURAL_EFFECTIVENESS
 
         return CulturalGapAnalysis(
-            gaps=processed_gaps[:3], # Ensure exactly 3
+            gaps=processed_gaps, # Return the processed gaps without forcing count
             overallStrategy=overall_strategy,
             effectivenessRating=effectiveness_rating,
             generatedTime=generated_time_ms

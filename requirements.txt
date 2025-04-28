@@ -1,3 +1,5 @@
 streamlit
 google-generativeai
-python-dotenv 
+python-dotenv
+pandas
+thefuzz[speedup] 

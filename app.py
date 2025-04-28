@@ -471,81 +471,62 @@ if st.session_state.translation_result:
 
     with results_area:
         st.divider()
-        st.subheader("Translation & Analysis Results")
+        st.subheader("Translations")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info("**Initial Translation**")
+            if result.initialTranslation and result.initialTranslation.text:
+                # Prepare highlights (if any) for initial text - assuming only target highlights apply to refined
+                # If highlights *can* apply to initial, they need separate processing
+                highlighted_initial = highlight_text(result.initialTranslation.text, []) # Pass empty list if no highlights for initial
+                # Display without blockquote
+                st.markdown(highlighted_initial, unsafe_allow_html=True)
+                display_confidence("Initial", result.initialTranslation.confidence)
+            else:
+                 st.markdown("_Processing or N/A_")
 
-        # --- Row 1: Initial vs Refined Translations (No Details Here) --- #
-        with st.container(border=True):
-            st.markdown("##### Initial & Refined Translations")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("**Initial Translation**")
-                if result.initialTranslation:
-                    st.markdown(f"> {result.initialTranslation.text}")
-                    display_confidence("Initial", result.initialTranslation.confidence)
-                else:
-                    st.markdown("_Processing..._")
+        with col2:
+            st.success("**Refined Translation**")
+            # Add radio button for selecting highlight type
+            highlight_type = st.radio(
+                "Show Highlights For:",
+                options=["None", "Cultural Gaps", "Linguistic Nuances"],
+                key="highlight_display_type", # Bind to session state
+                horizontal=True,
+                label_visibility="collapsed" # Hide the label "Show Highlights For:"
+            )
 
-            with col2:
-                st.markdown("**Refined Translation (Context-Aware)**")
-
-                # Add radio button for selecting highlight type
-                highlight_type = st.radio(
-                    "Show Highlights For:",
-                    options=["None", "Cultural Gaps", "Linguistic Nuances"],
-                    key="highlight_display_type", # Bind to session state
-                    horizontal=True,
-                    label_visibility="collapsed" # Hide the label "Show Highlights For:"
-                )
-
-                # --- Prepare data structures for consistent display ---
-                displayable_gaps = []
-                displayable_nuances = []
+            if result.refinedTranslation and result.refinedTranslation.text:
+                # --- Prepare highlights based on selection ---
                 highlights_to_show = []
-
-                if result.refinedTranslation:
-                    # Process Nuances for consistent display
-                    if highlight_type == "Linguistic Nuances":
-                        raw_nuances = result.refinedTranslation.linguisticNuances or []
-                        for i, nuance in enumerate(raw_nuances):
-                            color = generate_distinct_color(i, base_hue=200)
-                            tooltip = f"NUANCE ({nuance.category.upper()}): {nuance.explanation}"
-                            displayable_nuances.append({
-                                "index": i,
-                                "color": color,
-                                "tooltip": tooltip,
-                                "data": nuance
-                            })
-                            # Add to highlights list only if target location exists
-                            if nuance.targetLocation:
-                                highlights_to_show.append((nuance.targetLocation, color, tooltip))
-
-                    # Process Cultural Gaps for consistent display
-                    elif highlight_type == "Cultural Gaps":
-                        raw_gaps = result.culturalGapAnalysis.gaps if result.culturalGapAnalysis else []
-                        for i, gap in enumerate(raw_gaps):
-                            color = generate_distinct_color(i, base_hue=0) # Different base hue
-                            tooltip = f"CULTURAL GAP ({gap.category.upper()}): {gap.description} | Strategy: {gap.translationStrategy}"
-                            displayable_gaps.append({
-                                "index": i,
-                                "color": color,
-                                "tooltip": tooltip,
-                                "data": gap
-                            })
-                            # Add to highlights list only if target location exists
-                            if gap.targetLocation:
+                if highlight_type == "Cultural Gaps":
+                    if result.culturalGapAnalysis and result.culturalGapAnalysis.gaps:
+                        for i, gap in enumerate(result.culturalGapAnalysis.gaps):
+                            if gap.targetLocation: # Only use if target location exists
+                                color = generate_distinct_color(i, base_hue=0)
+                                tooltip = f"CULTURAL GAP ({gap.category.upper()}): {gap.description} | Strategy: {gap.translationStrategy}"
                                 highlights_to_show.append((gap.targetLocation, color, tooltip))
+                elif highlight_type == "Linguistic Nuances":
+                    if result.refinedTranslation.linguisticNuances:
+                         for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
+                             if nuance.targetLocation: # Only use if target location exists
+                                 color = generate_distinct_color(i, base_hue=200)
+                                 tooltip = f"NUANCE ({nuance.category.upper()}): {nuance.explanation}"
+                                 highlights_to_show.append((nuance.targetLocation, color, tooltip))
+                # --- End highlight preparation ---
 
-                    # Sort highlights by start index before applying (important for correct rendering)
-                    highlights_to_show.sort(key=lambda x: x[0].start)
+                # Sort highlights before applying
+                highlights_to_show.sort(key=lambda x: x[0].start)
+                highlighted_refined_text = highlight_text(result.refinedTranslation.text, highlights_to_show)
 
-                    # Apply highlights to the text
-                    highlighted_refined_text = highlight_text(result.refinedTranslation.text, highlights_to_show)
+                # Display without blockquote
+                st.markdown(highlighted_refined_text, unsafe_allow_html=True)
+                display_confidence("Refined", result.refinedTranslation.confidence)
+            else:
+                st.markdown("_Processing or N/A_")
 
-                    # Display refined text
-                    st.markdown(f"> {highlighted_refined_text}", unsafe_allow_html=True)
-                    display_confidence("Refined", result.refinedTranslation.confidence)
-                else:
-                    st.markdown("_Processing..._")
+        # --- Feedback Section ---
+        st.divider()
 
         # --- NEW Row: Display Details Based on Selection --- #
         # Use the pre-processed displayable_gaps/nuances lists for details
@@ -553,7 +534,7 @@ if st.session_state.translation_result:
 
         if highlight_details_type == "Cultural Gaps":
              # Display details using the processed 'displayable_gaps'
-             if displayable_gaps: # Check if the list was populated
+             if result.culturalGapAnalysis and result.culturalGapAnalysis.gaps: # Check if the list was populated
                  with st.container(border=True):
                      st.markdown("##### Cultural Gap Analysis (Details)")
                      # Display overall strategy etc. from the analysis object if needed
@@ -562,11 +543,10 @@ if st.session_state.translation_result:
                           st.metric("Overall Effectiveness", f"{result.culturalGapAnalysis.effectivenessRating}/10")
 
                      st.markdown("**Identified Gaps (with color key):**")
-                     for item in displayable_gaps:
-                         gap = item['data'] # Get the original gap object
-                         gap_color = item['color'] # Use the pre-calculated color
+                     for i, gap in enumerate(result.culturalGapAnalysis.gaps):
+                         gap_color = generate_distinct_color(i, base_hue=0) # Use the pre-calculated color
                          st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                     f'**{item["index"]+1}. {gap.name} ({gap.category.capitalize()})**', unsafe_allow_html=True)
+                                     f'**{i+1}. {gap.name} ({gap.category.capitalize()})**', unsafe_allow_html=True)
                          st.markdown(f"   - **Challenge:** {gap.description}")
                          st.markdown(f"   - **Strategy:** {gap.translationStrategy}")
                          snippet_parts = []
@@ -591,15 +571,14 @@ if st.session_state.translation_result:
 
         elif highlight_details_type == "Linguistic Nuances":
              # Display details using the processed 'displayable_nuances'
-             if displayable_nuances:
+             if result.refinedTranslation and result.refinedTranslation.linguisticNuances:
                  with st.container(border=True):
                      st.markdown("##### Linguistic Nuances (Details)")
                      st.markdown("**Identified Nuances (with color key):**")
-                     for item in displayable_nuances:
-                         nuance = item['data']
-                         nuance_color = item['color']
+                     for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
+                         nuance_color = generate_distinct_color(i, base_hue=200)
                          st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                     f'**{item["index"]+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
+                                     f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
                          st.markdown(f"   > {nuance.explanation}")
                          st.markdown("---") # Separator
              elif result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
