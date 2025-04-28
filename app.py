@@ -532,32 +532,47 @@ if st.session_state.translation_result:
             )
 
             if result.refinedTranslation and result.refinedTranslation.text:
-                # --- Prepare highlights based on selection ---
+                # --- Prepare highlights based on selection --- #
                 highlights_to_show = []
+                refined_text = result.refinedTranslation.text
+                text_len = len(refined_text)
+
                 if highlight_type == "Cultural Gaps":
                     if result.culturalGapAnalysis and result.culturalGapAnalysis.gaps:
                         for i, gap in enumerate(result.culturalGapAnalysis.gaps):
-                            if gap.targetLocation: # Only use if target location exists
+                            loc = gap.targetLocation
+                            # --- Add Explicit Validation --- #
+                            if (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
+                                0 <= loc.start < loc.end <= text_len):
                                 color = generate_distinct_color(i, base_hue=0)
                                 tooltip = f"CULTURAL GAP ({gap.category.upper()}): {gap.description} | Strategy: {gap.translationStrategy}"
-                                highlights_to_show.append((gap.targetLocation, color, tooltip))
+                                highlights_to_show.append((loc, color, tooltip))
+                            # else: Optionally log skipped gap location internally if needed for deep debugging
+                            # -------------------------- #
+
                 elif highlight_type == "Linguistic Nuances":
                     if result.refinedTranslation.linguisticNuances:
                          for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
-                             if nuance.targetLocation: # Only use if target location exists
+                             loc = nuance.targetLocation
+                             # --- Add Explicit Validation --- #
+                             if (loc and isinstance(loc.start, int) and isinstance(loc.end, int) and
+                                 0 <= loc.start < loc.end <= text_len):
                                  color = generate_distinct_color(i, base_hue=200)
                                  tooltip = f"NUANCE ({nuance.category.upper()}): {nuance.explanation}"
-                                 highlights_to_show.append((nuance.targetLocation, color, tooltip))
-                # --- End highlight preparation ---
+                                 highlights_to_show.append((loc, color, tooltip))
+                             # else: Optionally log skipped nuance location internally
+                             # -------------------------- #
+                # --- End highlight preparation --- #
 
-                # Sort highlights before applying
-                highlights_to_show.sort(key=lambda x: x[0].start)
+                # Sort highlights before applying (Important!)
+                if highlights_to_show:
+                    try:
+                        highlights_to_show.sort(key=lambda x: x[0].start)
+                    except Exception as e:
+                        # Log error if sorting fails, but don't crash
+                        print(f"Error sorting highlights: {e}. Proceeding without sorting.")
 
-                # --- REMOVE DEBUG --- #
-                # st.text(f"DEBUG (Highlight Input): {highlights_to_show}")
-                # --- END REMOVE DEBUG --- #
-
-                highlighted_refined_text = highlight_text(result.refinedTranslation.text, highlights_to_show)
+                highlighted_refined_text = highlight_text(refined_text, highlights_to_show)
 
                 # Display without blockquote
                 st.markdown(highlighted_refined_text, unsafe_allow_html=True)
