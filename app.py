@@ -129,61 +129,73 @@ def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) ->
     """Highlights text segments with tooltips. locations is List[(location, color, tooltip)]"""
 
     # --- START DEBUGGING: Simple Output --- #
-    if locations and isinstance(text, str):
-        # If there are locations, just prepend a simple colored block to the text
-        # Use the color from the first location for simplicity
-        debug_color = locations[0][1] if locations and len(locations[0]) > 1 else "#FFCC00" # Fallback yellow
-        print(f"DEBUG highlight_text: Received {len(locations)} locations. Applying debug marker.")
-        return f'<span style="background-color:{debug_color}; padding: 2px 6px; border-radius: 3px; color: black; font-weight: bold;">HIGHLIGHTED</span> {text}'
-    else:
-        print(f"DEBUG highlight_text: No locations received or text invalid.")
-        return text if isinstance(text, str) else ""
+    # if locations and isinstance(text, str):
+    #     debug_color = locations[0][1] if locations and len(locations[0]) > 1 else "#FFCC00"
+    #     print(f"DEBUG highlight_text: Received {len(locations)} locations. Applying debug marker.")
+    #     return f'<span style="background-color:{debug_color}; padding: 2px 6px; border-radius: 3px; color: black; font-weight: bold;">HIGHLIGHTED</span> {text}'
+    # else:
+    #     print(f"DEBUG highlight_text: No locations received or text invalid.")
+    #     return text if isinstance(text, str) else ""
     # --- END DEBUGGING: Simple Output --- #
 
-    # --- Original Logic (Commented Out for Debugging) --- #
-    # if not locations or not isinstance(text, str) or not text:
-    #     return text if isinstance(text, str) else ""
-    #
-    # text_len = len(text)
-    # highlighted_parts = []
-    # last_end = 0
-    #
-    # try:
-    #     locations.sort(key=lambda x: x[0].start if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') else 0)
-    # except Exception as e:
-    #     print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
-    #     return text
-    #
-    # for loc_tuple in locations:
-    #     if not isinstance(loc_tuple, tuple) or len(loc_tuple) != 3:
-    #         print(f"Skipping invalid location tuple format: {loc_tuple}")
-    #         continue
-    #     loc, color, tooltip = loc_tuple
-    #     if not isinstance(loc, TextLocation) or not hasattr(loc, 'start') or not hasattr(loc, 'end'):
-    #         print(f"Skipping invalid/incomplete TextLocation object: {loc}")
-    #         continue
-    #     start, end = loc.start, loc.end
-    #     if not (isinstance(start, int) and isinstance(end, int)):
-    #         print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)}) TextLen={text_len}")
-    #         continue
-    #     if not (0 <= start <= text_len and 0 <= end <= text_len):
-    #         print(f"Skipping out-of-bounds indices: start={start}, end={end}, TextLen={text_len}")
-    #         continue
-    #     if start > end:
-    #         print(f"Skipping invalid range (start > end): start={start}, end={end}, TextLen={text_len}")
-    #         continue
-    #     start = max(start, last_end)
-    #     if start >= end:
-    #          continue
-    #     highlighted_parts.append(text[last_end:start])
-    #     highlighted_segment = text[start:end]
-    #     safe_tooltip = str(tooltip).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ")
-    #     highlighted_parts.append(
-    #         f'<span style="background-color: {color}; padding: 2px 4px; border-radius: 3px;" title="{safe_tooltip}">{highlighted_segment}</span>'
-    #     )
-    #     last_end = end
-    # highlighted_parts.append(text[last_end:])
-    # return "".join(highlighted_parts)
+    # --- Original Logic (Restore) --- #
+    if not locations or not isinstance(text, str) or not text:
+        return text if isinstance(text, str) else ""
+
+    text_len = len(text)
+    highlighted_parts = []
+    last_end = 0
+
+    try:
+        locations.sort(key=lambda x: x[0].start if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') else 0)
+    except Exception as e:
+        print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
+        return text
+
+    for loc_tuple in locations:
+        if not isinstance(loc_tuple, tuple) or len(loc_tuple) != 3:
+            print(f"Skipping invalid location tuple format: {loc_tuple}")
+            continue
+        loc, color, tooltip = loc_tuple
+        if not isinstance(loc, TextLocation) or not hasattr(loc, 'start') or not hasattr(loc, 'end'):
+            print(f"Skipping invalid/incomplete TextLocation object: {loc}")
+            continue
+        start, end = loc.start, loc.end
+        if not (isinstance(start, int) and isinstance(end, int)):
+            print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)}) TextLen={text_len}")
+            continue
+        if not (0 <= start <= text_len and 0 <= end <= text_len):
+            print(f"Skipping out-of-bounds indices: start={start}, end={end}, TextLen={text_len}")
+            continue
+        if start > end:
+            print(f"Skipping invalid range (start > end): start={start}, end={end}, TextLen={text_len}")
+            continue
+
+        # Overlap handling: If the current highlight starts *before* the last one ended,
+        # adjust the current start to be *at least* where the last one ended.
+        # Ensure we don't process the same character twice if segments are adjacent.
+        if start < last_end:
+            start = last_end
+
+        # If adjustment makes the segment invalid (start >= end) OR empty, skip it.
+        if start >= end:
+             # print(f"Skipping highlight for {loc} due to overlap adjustment.") # Keep logging minimal now
+             continue
+
+        # Add text *before* this highlight
+        highlighted_parts.append(text[last_end:start])
+        # Add the *highlighted* segment
+        highlighted_segment = text[start:end]
+        safe_tooltip = str(tooltip).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ")
+        highlighted_parts.append(
+            f'<span style="background-color: {color}; padding: 2px 4px; border-radius: 3px;" title="{safe_tooltip}">{highlighted_segment}</span>'
+        )
+        # Update the end position for the next iteration
+        last_end = end
+
+    # Add any remaining text *after* the last highlight
+    highlighted_parts.append(text[last_end:])
+    return "".join(highlighted_parts)
     # --- End Original Logic --- #
 
 # --- Example Texts ---
@@ -447,19 +459,19 @@ else:
     progress_area.empty() # Clear progress bar when done or idle
 
 # Display results progressively or when completed
-# --- DEBUG: Show the raw result object ---
-if st.session_state.get("translation_result"):
-    st.subheader("DEBUG: Raw Translation Result Object")
-    try:
-        # Convert dataclass to dict before passing to st.json
-        result_dict = dataclasses.asdict(st.session_state.translation_result)
-        st.json(result_dict)
-    except Exception as e:
-        st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
-        # Fallback: print the object representation
-        st.text(repr(st.session_state.translation_result))
-    st.divider()
-# --- END DEBUG ---
+# --- REMOVE DEBUG Block ---
+# if st.session_state.get("translation_result"):
+#     st.subheader("DEBUG: Raw Translation Result Object")
+#     try:
+#         # Convert dataclass to dict before passing to st.json
+#         result_dict = dataclasses.asdict(st.session_state.translation_result)
+#         st.json(result_dict)
+#     except Exception as e:
+#         st.error(f"DEBUG: Could not serialize result object to JSON: {e}")
+#         # Fallback: print the object representation
+#         st.text(repr(st.session_state.translation_result))
+#     st.divider()
+# --- END REMOVE DEBUG ---
 
 if st.session_state.translation_result:
     result = st.session_state.translation_result
@@ -513,11 +525,9 @@ if st.session_state.translation_result:
                 # Sort highlights before applying
                 highlights_to_show.sort(key=lambda x: x[0].start)
 
-                # --- START DEBUGGING --- #
-                # Ensure this uses st.text or st.write for live app debugging
-                # print(f"DEBUG: Highlights being passed to highlight_text: {highlights_to_show}")
-                st.text(f"DEBUG (Highlight Input): {highlights_to_show}")
-                # --- END DEBUGGING --- #
+                # --- REMOVE DEBUG --- #
+                # st.text(f"DEBUG (Highlight Input): {highlights_to_show}")
+                # --- END REMOVE DEBUG --- #
 
                 highlighted_refined_text = highlight_text(result.refinedTranslation.text, highlights_to_show)
 
