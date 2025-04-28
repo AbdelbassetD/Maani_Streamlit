@@ -328,6 +328,7 @@ if translation_orchestrator:
                 st.session_state.feedback_submitted = False
                 st.session_state.translation_result = None
                 st.session_state.editable_gaps = None # Reset editable gaps on new run
+                st.session_state.edit_mode_enabled = False # Reset edit mode on new run
                 st.session_state.current_step = "not_started"
                 st.session_state.progress_message = "Starting translation..."
                 # Don't clear placeholders here, define them after this block
@@ -351,8 +352,10 @@ else:
 # Initialize session state variables
 if 'translation_result' not in st.session_state:
     st.session_state.translation_result = None
-if 'editable_gaps' not in st.session_state: # Add state for editable gaps
+if 'editable_gaps' not in st.session_state:
     st.session_state.editable_gaps = None
+if 'edit_mode_enabled' not in st.session_state: # Add state for edit toggle
+    st.session_state.edit_mode_enabled = False
 if 'current_step' not in st.session_state:
     st.session_state.current_step = "not_started"
 if 'progress_message' not in st.session_state:
@@ -518,7 +521,9 @@ if st.session_state.translation_result:
         with col2:
             st.info("**Refined Translation**")
             # Add radio button for selecting highlight type
-            highlight_type = st.radio(
+            # Read directly from session state for consistency
+            highlight_type = st.session_state.highlight_display_type
+            st.radio(
                 "Show Highlights For:",
                 options=["None", "Cultural Gaps", "Linguistic Nuances"],
                 key="highlight_display_type", # Bind to session state
@@ -563,8 +568,117 @@ if st.session_state.translation_result:
         # --- Feedback Section ---
         st.divider()
 
-        # --- Row 2 (Now Row 3): Context & Evaluation --- #
-        # This section remains the same, displaying Context and Evaluation side-by-side
+        # --- Row 2: Cultural Gap/Nuance Details (Moved Up & Modified for Editing) --- #
+        # Determine the highlight type from session state
+        highlight_type_for_details = st.session_state.get("highlight_display_type", "None")
+
+        # Display Cultural Gaps section if selected and data available
+        if highlight_type_for_details == "Cultural Gaps":
+            if 'editable_gaps' in st.session_state and st.session_state.editable_gaps is not None:
+                 with st.container(border=True):
+                     # Row for Title and Toggle
+                     col_title, col_toggle = st.columns([0.8, 0.2])
+                     with col_title:
+                         st.markdown("##### Cultural Gap Analysis")
+                     with col_toggle:
+                         st.toggle("Enable Editing", key="edit_mode_enabled", value=st.session_state.edit_mode_enabled, label_visibility="collapsed")
+
+                     if st.session_state.editable_gaps: # Check if list is not empty
+                          st.markdown("**Identified Gaps:**") # Simplified title
+                          # Iterate through the editable list in session state
+                          for i, gap_dict in enumerate(st.session_state.editable_gaps):
+                               item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}" # Use original index for stable key
+                               gap_color = generate_distinct_color(i, base_hue=0)
+                               st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
+                                           f'**Gap {i+1}**', unsafe_allow_html=True)
+
+                               # --- Conditional Display: Edit vs Read-Only --- #
+                               if st.session_state.edit_mode_enabled:
+                                   # --- Edit Mode --- #
+                                   gap_dict['name'] = st.text_input(
+                                       f"Name##{item_key_base}", value=gap_dict['name'], key=f"{item_key_base}_name", label_visibility="collapsed"
+                                   )
+                                   gap_dict['category'] = st.text_input(
+                                       f"Category##{item_key_base}", value=gap_dict['category'], key=f"{item_key_base}_category", label_visibility="collapsed"
+                                   )
+                                   gap_dict['description'] = st.text_area(
+                                       f"Description##{item_key_base}", value=gap_dict['description'], key=f"{item_key_base}_description", height=100, label_visibility="collapsed"
+                                   )
+                                   gap_dict['translationStrategy'] = st.text_input(
+                                       f"Strategy##{item_key_base}", value=gap_dict['translationStrategy'], key=f"{item_key_base}_strategy", label_visibility="collapsed"
+                                   )
+                               else:
+                                   # --- Read-Only Mode --- #
+                                   st.markdown(f"**Name:** {gap_dict.get('name', '_N/A_')}")
+                                   st.markdown(f"**Category:** {gap_dict.get('category', '_N/A_')}")
+                                   st.markdown("**Description:**")
+                                   st.markdown(f"> {gap_dict.get('description', '_N/A_')}")
+                                   st.markdown(f"**Translation Strategy:** {gap_dict.get('translationStrategy', '_N/A_')}")
+                               # -------------------------------------------------- #
+
+                               # Display Source/Target Snippets (Read-only - consistent)
+                               source_loc = gap_dict.get('sourceLocation')
+                               target_loc = gap_dict.get('targetLocation')
+
+                               if source_loc and result.inputText and result.inputText.arabicText:
+                                   try:
+                                       text_len = len(result.inputText.arabicText)
+                                       start = source_loc.start
+                                       end = source_loc.end
+                                       if 0 <= start <= end <= text_len:
+                                           source_snippet = result.inputText.arabicText[start:end]
+                                           st.caption(f"Source Snippet: `{source_snippet}`")
+                                       else:
+                                           st.caption(f"_Source location invalid ({start}-{end})_ ")
+                                   except Exception as e:
+                                       st.caption("_Error displaying source snippet._")
+                               else:
+                                   st.caption("_Source location not available._")
+
+                               if target_loc and result.refinedTranslation and result.refinedTranslation.text:
+                                   try:
+                                       text_len = len(result.refinedTranslation.text)
+                                       start = target_loc.start
+                                       end = target_loc.end
+                                       if 0 <= start <= end <= text_len:
+                                           target_snippet = result.refinedTranslation.text[start:end]
+                                           st.caption(f"Target Snippet: `{target_snippet}`")
+                                       else:
+                                           st.caption(f"_Target location invalid ({start}-{end})_ ")
+                                   except Exception as e:
+                                       st.caption("_Error displaying target snippet._")
+                               else:
+                                   st.caption("_Target location not available._")
+
+                               st.markdown("---") # Separator
+                     else:
+                         st.info("No cultural gaps identified or processed.")
+            # Optionally: Add an else here to show a message if gaps were selected but 'editable_gaps' is not ready/empty
+            # else:
+            #     st.info("Cultural Gaps selected, but no gap data is currently available.")
+
+        # Display Linguistic Nuances section if selected and data available
+        elif highlight_type_for_details == "Linguistic Nuances":
+             if result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
+                  with st.container(border=True):
+                      st.markdown("##### Linguistic Nuances (Details)")
+                      if result.refinedTranslation.linguisticNuances: # Check if list is not empty
+                           st.markdown("**Identified Nuances (with color key):**")
+                           for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
+                               nuance_color = generate_distinct_color(i, base_hue=200)
+                               st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
+                                           f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
+                               st.markdown(f"   > {nuance.explanation}")
+                               st.markdown("---") # Separator
+                      else:
+                           st.info("No linguistic nuances identified.")
+             # Optionally: Add an else here to show a message if nuances were selected but data is missing
+             # else:
+             #     st.info("Linguistic Nuances selected, but no nuance data is currently available.")
+
+        # If highlight_type_for_details is "None" or something else, nothing is shown for this row.
+
+        # --- Row 3 (Previously Row 2): Context & Evaluation --- #
         if result.contextAnalysis or result.evaluation:
             col1_ctx, col2_eval = st.columns([1, 2])
             with col1_ctx:
@@ -602,104 +716,6 @@ if st.session_state.translation_result:
                               st.caption(f"Generated in {eval_data.generatedTime} ms")
                     else:
                         st.markdown("_Processing..._")
-
-        # --- Row 3 (Now Row 4): Cultural Gap/Nuance Details (Modified for Editing) --- #
-        if 'editable_gaps' in st.session_state and st.session_state.editable_gaps is not None:
-             if highlight_type == "Cultural Gaps":
-                  with st.container(border=True):
-                      st.markdown("##### Cultural Gap Analysis (Editable Details)")
-                      if st.session_state.editable_gaps: # Check if list is not empty
-                           st.markdown("**Identified Gaps (Edit Details Below):**")
-                           # Iterate through the editable list in session state
-                           for i, gap_dict in enumerate(st.session_state.editable_gaps):
-                                item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}" # Use original index for stable key
-                                gap_color = generate_distinct_color(i, base_hue=0)
-                                st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                            f'**Gap {i+1}**', unsafe_allow_html=True)
-
-                                # --- Use Input Widgets --- #
-                                gap_dict['name'] = st.text_input(
-                                    f"Name##{item_key_base}",
-                                    value=gap_dict['name'],
-                                    key=f"{item_key_base}_name",
-                                    label_visibility="collapsed"
-                                )
-                                gap_dict['category'] = st.text_input(
-                                    f"Category##{item_key_base}",
-                                    value=gap_dict['category'],
-                                    key=f"{item_key_base}_category",
-                                    label_visibility="collapsed"
-                                )
-                                gap_dict['description'] = st.text_area(
-                                    f"Description##{item_key_base}",
-                                    value=gap_dict['description'],
-                                    key=f"{item_key_base}_description",
-                                    height=100,
-                                    label_visibility="collapsed"
-                                )
-                                gap_dict['translationStrategy'] = st.text_input(
-                                    f"Strategy##{item_key_base}",
-                                    value=gap_dict['translationStrategy'],
-                                    key=f"{item_key_base}_strategy",
-                                    label_visibility="collapsed"
-                                )
-                                # ------------------------ #
-
-                                # Display Source/Target Snippets (Read-only)
-                                source_loc = gap_dict.get('sourceLocation')
-                                target_loc = gap_dict.get('targetLocation')
-
-                                if source_loc and result.inputText and result.inputText.arabicText:
-                                    try:
-                                        text_len = len(result.inputText.arabicText)
-                                        start = source_loc.start
-                                        end = source_loc.end
-                                        if 0 <= start <= end <= text_len:
-                                            source_snippet = result.inputText.arabicText[start:end]
-                                            st.caption(f"Source Snippet: `{source_snippet}`")
-                                        else:
-                                            st.caption(f"_Source location invalid ({start}-{end})_ ")
-                                    except Exception as e:
-                                        st.caption("_Error displaying source snippet._")
-                                else:
-                                    st.caption("_Source location not available._")
-
-                                if target_loc and result.refinedTranslation and result.refinedTranslation.text:
-                                    try:
-                                        text_len = len(result.refinedTranslation.text)
-                                        start = target_loc.start
-                                        end = target_loc.end
-                                        if 0 <= start <= end <= text_len:
-                                            target_snippet = result.refinedTranslation.text[start:end]
-                                            st.caption(f"Target Snippet: `{target_snippet}`")
-                                        else:
-                                            st.caption(f"_Target location invalid ({start}-{end})_ ")
-                                    except Exception as e:
-                                        st.caption("_Error displaying target snippet._")
-                                else:
-                                    st.caption("_Target location not available._")
-
-                                st.markdown("---") # Separator
-                      else:
-                          st.info("No cultural gaps identified or processed.")
-
-             # Keep Linguistic Nuance display as read-only for now (ALIGN THIS ELIF with the IF above)
-             elif highlight_type == "Linguistic Nuances":
-                  if result.refinedTranslation and result.refinedTranslation.linguisticNuances:
-                      with st.container(border=True):
-                          st.markdown("##### Linguistic Nuances (Details)")
-                          st.markdown("**Identified Nuances (with color key):**")
-                          for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
-                              nuance_color = generate_distinct_color(i, base_hue=200)
-                              st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                          f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
-                              st.markdown(f"   > {nuance.explanation}")
-                              st.markdown("---") # Separator
-                  elif result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
-                      with st.container(border=True):
-                           st.markdown("##### Linguistic Nuances (Details)")
-                           st.info("No linguistic nuances identified that could be highlighted in the text.")
-                  # else: show processing or N/A message if nuance analysis is missing
 
         # --- Footer --- #
         # Add footer or final message
