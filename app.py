@@ -683,23 +683,23 @@ if st.session_state.translation_result:
                       else:
                           st.info("No cultural gaps identified or processed.")
 
-                 # Keep Linguistic Nuance display as read-only for now
-                 elif highlight_type == "Linguistic Nuances":
-                      if result.refinedTranslation and result.refinedTranslation.linguisticNuances:
-                          with st.container(border=True):
-                              st.markdown("##### Linguistic Nuances (Details)")
-                              st.markdown("**Identified Nuances (with color key):**")
-                              for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
-                                  nuance_color = generate_distinct_color(i, base_hue=200)
-                                  st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                              f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
-                                  st.markdown(f"   > {nuance.explanation}")
-                                  st.markdown("---") # Separator
-                      elif result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
-                          with st.container(border=True):
-                               st.markdown("##### Linguistic Nuances (Details)")
-                               st.info("No linguistic nuances identified that could be highlighted in the text.")
-                      # else: show processing or N/A message if nuance analysis is missing
+             # Keep Linguistic Nuance display as read-only for now (ALIGN THIS ELIF with the IF above)
+             elif highlight_type == "Linguistic Nuances":
+                  if result.refinedTranslation and result.refinedTranslation.linguisticNuances:
+                      with st.container(border=True):
+                          st.markdown("##### Linguistic Nuances (Details)")
+                          st.markdown("**Identified Nuances (with color key):**")
+                          for i, nuance in enumerate(result.refinedTranslation.linguisticNuances):
+                              nuance_color = generate_distinct_color(i, base_hue=200)
+                              st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{nuance_color}; border-radius: 50%; margin-right: 8px;"></span>'
+                                          f'**{i+1}. {nuance.text} ({nuance.category.capitalize()})**', unsafe_allow_html=True)
+                              st.markdown(f"   > {nuance.explanation}")
+                              st.markdown("---") # Separator
+                  elif result.refinedTranslation and result.refinedTranslation.linguisticNuances is not None:
+                      with st.container(border=True):
+                           st.markdown("##### Linguistic Nuances (Details)")
+                           st.info("No linguistic nuances identified that could be highlighted in the text.")
+                  # else: show processing or N/A message if nuance analysis is missing
 
         # --- Footer --- #
         # Add footer or final message
