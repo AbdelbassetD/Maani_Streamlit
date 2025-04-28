@@ -128,26 +128,26 @@ def display_evaluation_scores(label: str, scores):
 def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) -> str:
     """Highlights text segments with tooltips. locations is List[(location, color, tooltip)]"""
 
-    # --- START DEBUGGING: Simple Output --- #
-    # if locations and isinstance(text, str):
-    #     debug_color = locations[0][1] if locations and len(locations[0]) > 1 else "#FFCC00"
-    #     print(f"DEBUG highlight_text: Received {len(locations)} locations. Applying debug marker.")
-    #     return f'<span style="background-color:{debug_color}; padding: 2px 6px; border-radius: 3px; color: black; font-weight: bold;">HIGHLIGHTED</span> {text}'
-    # else:
-    #     print(f"DEBUG highlight_text: No locations received or text invalid.")
-    #     return text if isinstance(text, str) else ""
-    # --- END DEBUGGING: Simple Output --- #
+    # --- Add internal print for debugging --- #
+    print(f"--- highlight_text called ---")
+    print(f"Input Text Length: {len(text) if isinstance(text, str) else 'N/A'}")
+    print(f"Input Locations: {locations}")
+    # ------------------------------------ #
 
-    # --- Original Logic (Restore) --- #
     if not locations or not isinstance(text, str) or not text:
+        print(f"Highlighting skipped: No locations or invalid text.")
         return text if isinstance(text, str) else ""
 
     text_len = len(text)
     highlighted_parts = []
     last_end = 0
 
+    # Sort locations by start index first, then by end index descending (for nested)
     try:
-        locations.sort(key=lambda x: x[0].start if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') else 0)
+        # Sort primarily by start index, secondarily by end index descending
+        # This ensures outer spans are processed before inner spans if they share a start point.
+        locations.sort(key=lambda x: (x[0].start, -x[0].end) if isinstance(x[0], TextLocation) and hasattr(x[0], 'start') and hasattr(x[0], 'end') else (0, 0))
+        print(f"Sorted Locations: {locations}")
     except Exception as e:
         print(f"Error sorting highlight locations: {e}. Skipping highlighting.")
         return text
@@ -161,29 +161,28 @@ def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) ->
             print(f"Skipping invalid/incomplete TextLocation object: {loc}")
             continue
         start, end = loc.start, loc.end
+
+        # --- Refined Validation within the function --- #
         if not (isinstance(start, int) and isinstance(end, int)):
-            print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)}) TextLen={text_len}")
+            print(f"Skipping non-integer indices: start={start} ({type(start)}), end={end} ({type(end)})")
             continue
-        if not (0 <= start <= text_len and 0 <= end <= text_len):
-            print(f"Skipping out-of-bounds indices: start={start}, end={end}, TextLen={text_len}")
-            continue
-        if start > end:
-            print(f"Skipping invalid range (start > end): start={start}, end={end}, TextLen={text_len}")
-            continue
+        # Check bounds strictly: 0 <= start < end <= text_len
+        if not (0 <= start < text_len and 0 < end <= text_len and start < end):
+             print(f"Skipping out-of-bounds/invalid range: start={start}, end={end}, TextLen={text_len}")
+             continue
+        # -------------------------------------------- #
 
         # Overlap handling: If the current highlight starts *before* the last one ended,
-        # adjust the current start to be *at least* where the last one ended.
-        # Ensure we don't process the same character twice if segments are adjacent.
+        # it indicates a potential nesting or overlap. For simplicity now, we will skip
+        # highlights that start before the previous one ends to avoid complex merging/splitting.
+        # A more advanced implementation could handle merging or prioritize.
         if start < last_end:
-            start = last_end
-
-        # If adjustment makes the segment invalid (start >= end) OR empty, skip it.
-        if start >= end:
-             # print(f"Skipping highlight for {loc} due to overlap adjustment.") # Keep logging minimal now
+             print(f"Skipping highlight starting at {start} because it overlaps with previous ending at {last_end}")
              continue
 
-        # Add text *before* this highlight
-        highlighted_parts.append(text[last_end:start])
+        # Add text *before* this highlight (handle potential empty slice)
+        if start > last_end:
+            highlighted_parts.append(text[last_end:start])
         # Add the *highlighted* segment
         highlighted_segment = text[start:end]
         safe_tooltip = str(tooltip).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;").replace("\n", " ")
@@ -194,9 +193,16 @@ def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) ->
         last_end = end
 
     # Add any remaining text *after* the last highlight
-    highlighted_parts.append(text[last_end:])
-    return "".join(highlighted_parts)
-    # --- End Original Logic --- #
+    if last_end < text_len:
+        highlighted_parts.append(text[last_end:])
+
+    final_html = "".join(highlighted_parts)
+    # --- Add internal print for debugging --- #
+    print(f"Output HTML: {final_html[:200]}...") # Print beginning of result
+    print(f"--- highlight_text finished ---")
+    # ------------------------------------ #
+    return final_html
+# --- End Original Logic --- #
 
 # --- Example Texts ---
 EXAMPLE_TEXTS: Dict[str, str] = {
@@ -524,7 +530,7 @@ if st.session_state.translation_result:
             # Read directly from session state for consistency
             highlight_type = st.session_state.highlight_display_type
             st.radio(
-                "Show Highlights For:",
+                label="Show Highlights For:",
                 options=["None", "Cultural Gaps", "Linguistic Nuances"],
                 key="highlight_display_type", # Bind to session state
                 horizontal=True,
