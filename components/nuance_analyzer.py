@@ -53,10 +53,7 @@ def generate_linguistic_nuances(
     logging.info(f"Linguistic nuance analysis generated in {end_time - start_time:.2f}s")
 
     # --- START DEBUGGING --- #
-    print(f"DEBUG: LLM Raw Response (Nuance):
----
-{response_text}
----")
+    print(f"DEBUG: LLM Raw Response (Nuance Length): {len(response_text) if response_text else 0}") # Print length instead
     # --- END DEBUGGING --- #
 
     if not response_text:
