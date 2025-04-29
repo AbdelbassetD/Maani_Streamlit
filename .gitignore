@@ -3,3 +3,4 @@ Paper.tex
 .env
 __pycache__/
 .streamlit/secrets.toml
+.vscode/

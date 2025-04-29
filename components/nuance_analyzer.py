@@ -133,4 +133,4 @@ def _get_adjusted_fallback_nuances(refined_translation: str) -> List[LinguisticN
                          targetLocation=TextLocation(start=fb2_start, end=fb2_end),
                      )
                  )
-    return adjusted_fallbacks 
+    return adjusted_fallbacks
