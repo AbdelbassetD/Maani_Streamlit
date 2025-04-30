@@ -140,7 +140,7 @@ def get_cultural_gap_analysis_prompt(arabic_text: str, refined_translation: str,
 
     return f"""You are a specialist in cross-cultural communication and translation studies, focusing on Classical Arabic to modern English challenges.
 
-Your task is to analyze the provided Arabic text and its English translation to identify **ALL significant cultural translation gaps**. A cultural gap occurs where concepts, references, values, social norms, idioms, or material culture from the source text do not have a direct or easily understood equivalent in the target language and culture (modern English). Focus on elements requiring cultural context beyond simple lexical equivalence. Important: The gap cannot be the entire translated text, but must be a specific segment.
+Your task is to analyze the provided Arabic text and its English translation to identify **ALL significant cultural translation gaps**. A cultural gap occurs where concepts, references, values, social norms, idioms, or material culture from the source text do not have a direct or easily understood equivalent in the target language and culture (modern English). Focus on elements requiring cultural context beyond simple lexical equivalence. Important: The gap should not be the entire translation (unless it really represents a culural gap), but must be a specific segment (word, phrase, expression, etc.).
 
 Original Arabic Text:
 ```
