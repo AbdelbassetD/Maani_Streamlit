@@ -20,7 +20,7 @@ Analyze the provided Arabic text and extract key contextual information:
 1. The genre/type of the text
 2. The time period it represents
 3. The tone and register
-4. Key terminology (provide 4-5 Arabic terms with English meanings)
+4. Key terminology (provide 2-10 (depending on the length of the text) Arabic terms with English meanings)
 5. Historical and cultural context (1-2 sentences)
 
 ARABIC TEXT:
