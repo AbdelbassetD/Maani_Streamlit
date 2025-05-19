@@ -20,7 +20,7 @@ Analyze the provided Arabic text and extract key contextual information:
 1. The genre/type of the text
 2. The time period it represents
 3. The tone and register
-4. Key terminology (provide 2-10 (depending on the length of the text) Arabic terms with English meanings)
+4. Key terminology (provide 2-10 (depending on the length of the text) Arabic terms with English meanings. ONLY provide key terms (given the Classical Arabic context), not ordinary or unimportant terms.)
 5. Historical and cultural context (1-2 sentences)
 
 ARABIC TEXT:
@@ -87,7 +87,7 @@ def get_evaluation_prompt(arabic_text: str, initial_translation: str, refined_tr
     hist_context = context.historicalContext if context else "Not available"
 
     return f"""
-You are an expert in Arabic-English translation quality assessment with deep knowledge of Classical Arabic literature, linguistic nuance, and cultural contexts.
+You are an expert in Classical Arabic-to-English translation quality assessment with deep knowledge of Classical Arabic literature, linguistic nuance, and cultural contexts.
 
 Carefully evaluate two translations of the same Arabic text OBJECTIVELY. The refined translation should only receive higher scores if it genuinely improves upon the initial translation in measurable ways. Do not automatically favor the refined translation.
 
