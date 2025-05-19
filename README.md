@@ -8,7 +8,7 @@ This application provides a multi-step translation and analysis of Classical Ara
 -   **Context Analysis:** Determines genre, time period, tone, key terms, and historical context.
 -   **Refined Translation:** Improves the initial translation based on the analyzed context.
 -   **Comparative Evaluation:** Scores and compares the initial and refined translations on accuracy, fluency, nuance, and cultural fidelity.
--   **Cultural Gap Analysis:** Identifies potential cultural discrepanancies (_gaps_) and the strategies used to bridge them.
+-   **Cultural Gap Analysis:** Identifies potential cultural discrepanncies (_gaps_) and the strategies used to bridge them.
 -   **Linguistic Nuances:** Explains specific terms or phrases in the refined translation that have cultural or linguistic significance (with highlighting).
 -   **Interactive UI:** Built with Streamlit for ease of use.
 
