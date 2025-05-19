@@ -68,7 +68,7 @@ Initial Translation (for reference only):
 {initial_translation}
 
 **REFINEMENT INSTRUCTIONS:**
-1. **Prioritize Clarity and Quality:** Produce the most accurate, fluent, and contextually appropriate English translation possible. Do not attempt to necessarily change the initial translation or a part of it, if it is already high quality.
+1. **Prioritize Clarity and Quality:** Produce the most accurate, fluent, and contextually appropriate English translation possible. Do not attempt to necessarily change the initial translation or a part of it, if it is already high quality. DO NOT over-refine the translation.
 2. **Use English Equivalents:** Translate all concepts, including culturally specific ones, into their best English equivalents. **DO NOT** use direct transliterations (e.g., 'Fitna') as the primary translation.
 3. **Optional Supplementation:** If a culturally specific term (like 'Fitna' or 'Jahiliyyah') has been translated to English but you believe providing the original term adds crucial context, you may append the transliterated term and a brief, succinct explanation within square brackets immediately after the English equivalent. Example: "...civil discord [Fitna: internal strife/sedition]..." or "...the pre-Islamic era [Jahiliyyah]...". Use this sparingly and only when it aids understanding.
 4. **Maintain Semantic Accuracy:** Ensure the meaning of the original Arabic is fully preserved.
