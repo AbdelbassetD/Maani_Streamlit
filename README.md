@@ -8,13 +8,13 @@ This application provides a multi-step translation and analysis of Classical Ara
 -   **Context Analysis:** Determines genre, time period, tone, key terms, and historical context.
 -   **Refined Translation:** Improves the initial translation based on the analyzed context.
 -   **Comparative Evaluation:** Scores and compares the initial and refined translations on accuracy, fluency, nuance, and cultural fidelity.
--   **Cultural Gap Analysis:** Identifies potential cultural misunderstandings and the strategies used to bridge them.
+-   **Cultural Gap Analysis:** Identifies potential cultural discrepanancies (_gaps_) and the strategies used to bridge them.
 -   **Linguistic Nuances:** Explains specific terms or phrases in the refined translation that have cultural or linguistic significance (with highlighting).
 -   **Interactive UI:** Built with Streamlit for ease of use.
 
 ## Setup
 
-1.  **Clone the repository (or ensure you have the files):**
+1. **Clone the repository (or ensure you have the files):**
 
     ```bash
     # If applicable
@@ -22,7 +22,7 @@ This application provides a multi-step translation and analysis of Classical Ara
     # cd <repository-directory>
     ```
 
-2.  **Create a Python virtual environment (recommended):**
+2. **Create a Python virtual environment (recommended):**
 
     ```bash
     python -m venv venv
@@ -33,28 +33,29 @@ This application provides a multi-step translation and analysis of Classical Ara
     source venv/bin/activate
     ```
 
-3.  **Install dependencies:**
+3. **Install dependencies:**
 
     ```bash
     pip install -r requirements.txt
     ```
 
-4.  **Set up your API Key:**
-    -   Create a file named `.env` in the project root.
-    -   Add your Google Generative AI API key to it:
+4. **Set up your API Key:**
+
+    - Create a file named `.env` in the project root.
+    - Add your Google Generative AI API key to it:
         ```.env
         GOOGLE_API_KEY=YOUR_API_KEY_HERE
         ```
-    -   Replace `YOUR_API_KEY_HERE` with your actual key.
+    - Replace `YOUR_API_KEY_HERE` with your actual key.
 
 ## Running the App
 
-1.  Make sure your virtual environment is activated.
-2.  Run the Streamlit app from your terminal:
+1. Make sure your virtual environment is activated.
+2. Run the Streamlit app from your terminal:
     ```bash
     streamlit run app.py
     ```
-3.  The application should open in your web browser.
+3. The application should open in your web browser.
 
 ## Project Structure
 

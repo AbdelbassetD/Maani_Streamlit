@@ -43,9 +43,33 @@ st.set_page_config(
     page_icon="📖",
     layout="wide",
     initial_sidebar_state="expanded"
-    # The 'theme' argument is removed as it's not supported in this version
-    # Theme settings are now in .streamlit/config.toml
 )
+
+st.markdown(
+    """
+    <style>
+    /* Shrink ALL rem-based sizing to 80% of normal */
+    :root {
+        font-size: 80%;
+    }
+
+    /* Optional: tighten up the main content width so it doesn't get too stretched */
+    div.block-container {
+        max-width: 80rem;       /* you can tweak this to taste */
+        margin: auto;           /* center it */
+        padding-top: 1rem;      /* adjust padding as needed */
+        padding-bottom: 1rem;
+    }
+
+    /* If you also want slightly smaller sidebar */
+    div[data-testid="stSidebar"] .sidebar-content {
+        font-size: 0.9rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 # --- Color Generation Helpers ---
 def hsl_to_hex(h, s, l) -> str:
@@ -633,7 +657,7 @@ if st.session_state.translation_result:
                                item_key_base = f"gap_edit_{gap_dict.get('original_index', i)}"
                                gap_color = generate_distinct_color(i, base_hue=0)
                                st.markdown(f'<span style="display:inline-block; width: 12px; height: 12px; background-color:{gap_color}; border-radius: 50%; margin-right: 8px;"></span>'
-                                     f'**{i+1}. {gap_dict['name']} [{gap_dict['category']}]**', unsafe_allow_html=True)
+                                     f'**{i+1}. {gap_dict["name"]} [{gap_dict["category"]}]**', unsafe_allow_html=True)
 
                                # --- Conditional Display: Edit vs Read-Only --- #
                                if is_editing:
