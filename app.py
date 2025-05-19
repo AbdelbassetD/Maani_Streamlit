@@ -719,8 +719,8 @@ if st.session_state.translation_result:
                                # if target_loc ... st.caption(...)
 
                                st.markdown("---") # Separator
-                          else:
-                              st.info("No cultural gaps identified or processed.")
+                        #   else:
+                        #       st.info("No cultural gaps identified or processed.")
             # Optionally: Add an else here to show a message if gaps were selected but 'editable_gaps' is not ready/empty
             # else:
             #     st.info("Cultural Gaps selected, but no gap data is currently available.")
