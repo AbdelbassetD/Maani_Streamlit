@@ -63,7 +63,7 @@ st.markdown(
 
     /* If you also want slightly smaller sidebar */
     div[data-testid="stSidebar"] .sidebar-content {
-        font-size: 0.9rem;
+        font-size: 0.75rem;
     }
     </style>
     """,
