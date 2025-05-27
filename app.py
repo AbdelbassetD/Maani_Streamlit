@@ -803,7 +803,7 @@ if st.session_state.translation_result:
             st.success("Translation and analysis complete.")
             if not st.session_state.should_scroll:
                 st.session_state.should_scroll = True
-                st.experimental_rerun()
+                st.rerun()
 
         # Add anchor at the top of the translations section
         if st.session_state.should_scroll:
