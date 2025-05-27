@@ -1,3 +1,9 @@
+##############################################################
+# Ma'ani - Classical Arabic to English Translation & Analysis
+# Author: Abdelbasset Djamai
+# Version: 0.2.0
+##############################################################
+
 import streamlit as st
 import asyncio
 import colorsys # Import the colorsys module
