@@ -1,7 +1,7 @@
 # Configuration settings for the translation service
 
 # --- Google AI Model Configuration ---
-DEFAULT_MODEL_NAME = 'gemini-2.0-flash-lite-001'
+DEFAULT_MODEL_NAME = 'gemini-2.5-flash-preview-05-20'
 
 # Safety settings to minimize refusals for translation/analysis tasks
 # Options: BLOCK_NONE, BLOCK_ONLY_HIGH, BLOCK_MEDIUM_AND_ABOVE, BLOCK_LOW_AND_ABOVE
