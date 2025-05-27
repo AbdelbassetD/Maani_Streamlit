@@ -195,7 +195,7 @@ Refined English Translation:
     *   `description`: Briefly explain *why* this specific element presents a cultural translation challenge (1-2 sentences).
     *   `translationStrategy`: Describe the strategy used in the refined translation to bridge the gap (e.g., 'Literal Translation', 'Functional Equivalent', 'Explanatory Translation', 'Cultural Substitution', 'Omission', 'Compensation', 'Transliteration with explanation').
 4.  **Summarize:**
-    *   `overallStrategy`: Briefly describe the main approach(es) observed in handling cultural gaps across the entire translation (1 sentence).
+    *   `overallStrategy`: Briefly describe the main approach(es) observed in handling cultural gaps across the entire translation (1 sentence). This should be informed by translation studies theory.
     *   `effectivenessRating`: Rate the overall success (1-10) of the refined translation in bridging the identified cultural gaps.
 
 **OUTPUT FORMAT:**
