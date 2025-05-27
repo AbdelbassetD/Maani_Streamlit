@@ -4,7 +4,7 @@ This application provides a multi-step translation and analysis of Classical Ara
 
 Check out the web-based demo: [https://maani-translation.streamlit.app/](https://maani-translation.streamlit.app/ "Web-based app demo")
 
-For more technical details, click [here](https://github.com/AbdelbassetD/Maani_Streamlit/blob/main/System_Description.md).
+For more technical details on each component works, click [here](https://github.com/AbdelbassetD/Maani_Streamlit/blob/main/System_Description.md).
 
 ## Features
 
