@@ -536,7 +536,7 @@ if st.session_state.translation_result:
 
     with results_area:
         st.divider()
-        st.subheader("Translations")
+        st.subheader("Translations", anchor="translations")
         col1, col2 = st.columns(2)
         with col1:
             st.info("**Initial Translation**")
@@ -797,6 +797,12 @@ if st.session_state.translation_result:
         # Add footer or final message
         if result.currentStep == 'completed':
             st.success("Translation and analysis complete.")
+            # Add JavaScript to scroll to translations section
+            st.markdown("""
+                <script>
+                    window.parent.document.querySelector('a[href="#translations"]').click();
+                </script>
+            """, unsafe_allow_html=True)
 
         # --- Download Button ---
         if result.currentStep == 'completed':

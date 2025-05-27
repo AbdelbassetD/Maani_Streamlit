@@ -2,7 +2,7 @@
 
 # --- Google AI Model Configuration ---
 # You can swap this with other compatible models like 'gemini-1.5-pro-latest'
-DEFAULT_MODEL_NAME = 'gemini-2.0-flash-lite-001'
+DEFAULT_MODEL_NAME = 'gemini-2.5-flash-preview-05-20'
 # gemini-1.5-flash-latest
 
 # Safety settings to minimize refusals for translation/analysis tasks
