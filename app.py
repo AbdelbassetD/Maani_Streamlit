@@ -255,9 +255,6 @@ if 'highlight_display_type' not in st.session_state:
 # Add session state for feedback buttons
 if 'feedback_submitted' not in st.session_state:
      st.session_state.feedback_submitted = False
-# Initialize session state for scrolling
-if 'should_scroll' not in st.session_state:
-    st.session_state.should_scroll = False
 
 # Callback to update text area when example changes
 def update_text_from_example():
@@ -539,7 +536,6 @@ if st.session_state.translation_result:
 
     with results_area:
         st.divider()
-        st.markdown('<div id="translations"></div>', unsafe_allow_html=True)
         st.subheader("Translations")
         col1, col2 = st.columns(2)
         with col1:
@@ -801,14 +797,6 @@ if st.session_state.translation_result:
         # Add footer or final message
         if result.currentStep == 'completed':
             st.success("Translation and analysis complete.")
-            if not st.session_state.should_scroll:
-                st.session_state.should_scroll = True
-                st.rerun()
-
-        # Add anchor at the top of the translations section
-        if st.session_state.should_scroll:
-            st.markdown('<div id="translations"></div>', unsafe_allow_html=True)
-            st.session_state.should_scroll = False  # Reset the flag
 
         # --- Download Button ---
         if result.currentStep == 'completed':
