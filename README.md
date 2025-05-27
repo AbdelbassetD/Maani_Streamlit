@@ -1,6 +1,8 @@
-# Ma'ani: Classical Arabic Translation & Analysis (Python/Streamlit Version)
+# Ma'ani: Classical Arabic-to-English Translation & Analysis
 
-This application provides a multi-step translation and analysis of Classical Arabic text using Google's Generative AI.
+This application provides a multi-step translation and analysis of Classical Arabic text into English using Google's Generative AI (LLMs).
+
+Check out the web-based demo: [https://maani-translation.streamlit.app/](https://maani-translation.streamlit.app/)
 
 ## Features
 

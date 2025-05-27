@@ -546,8 +546,9 @@ if st.session_state.translation_result:
 
         with col2:
             st.info("**Refined Translation**")
+            # Add help text for the radio buttons
+            st.caption("Toggle highlights to see cultural concepts and linguistic features in the translation. Hover over highlighted text to see details.")
             # Add radio button for selecting highlight type
-            # Read directly from session state for consistency
             highlight_type = st.session_state.get("highlight_display_type", "None")
             st.radio(
                 label="Show Highlights For:",

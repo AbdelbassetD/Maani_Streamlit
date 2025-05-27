@@ -4,3 +4,4 @@ Paper.tex
 __pycache__/
 .streamlit/secrets.toml
 .vscode/
+.devcontainer/
