@@ -1,7 +1,8 @@
 Paper.tex
 .venv/
+.devcontainer/
+.devcontainer
 .env
 __pycache__/
 .streamlit/secrets.toml
 .vscode/
-.devcontainer/
