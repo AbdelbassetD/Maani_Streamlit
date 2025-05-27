@@ -140,7 +140,31 @@ def get_cultural_gap_analysis_prompt(arabic_text: str, refined_translation: str,
 
     return f"""You are a specialist in cross-cultural communication and translation studies, focusing on Classical Arabic to modern English challenges.
 
-Your task is to analyze the provided Arabic text and its English translation to identify **ALL significant cultural translation gaps**. A cultural gap occurs where concepts, references, values, social norms, idioms, or material culture from the source text do not have a direct or easily understood equivalent in the target language and culture (modern English). Focus on elements requiring cultural context beyond simple lexical equivalence. Important: The gap SHOULD NOT be the entire translation, but must be a small, specific segment (word, phrase, expression, etc.). NEVER reutrn the whole sentence as a gap.
+Your task is to analyze the provided ClassicalArabic text and its English translation to identify **ALL key cultural translation gaps/nuances**.
+
+A cultural gap is a specific word, phrase, or expression in the source text that:
+- Represents a concept, reference, value, social norm, idiom, or material culture unique to the source culture, and
+- Lacks a direct or easily understood equivalent in modern English or the target culture, and
+- Requires additional cultural, historical, or contextual knowledge for a modern English reader to fully understand.
+
+**Important:**
+- The gap MUST be a small, specific segment (word, phrase, or expression), NOT the entire sentence or a generic/overly broad segment.
+- NEVER return the whole sentence or a segment that simply repeats the entire translation.
+- DO NOT include ordinary words or phrases that have clear, direct equivalents in English.
+- Focus on elements that would likely confuse, mislead, or lose meaning for a modern English reader without extra explanation.
+- If in doubt, err on the side of including more specific, challenging segments rather than fewer.
+
+**Examples of cultural gaps (NON-EXHAUSTIVE):**
+1. The phrase "الحَمْدُ للهِ" is a reference to a common Islamic expression. In the translation, it is rendered as "Praise be to Allah". The gap is the specific reference to Allah, which is not present in the English translation.
+2. The term "عصر الجاهلية" refers to the pre-Islamic era, a concept with deep cultural and historical meaning in Arabic. The gap is the phrase "عصر الجاهلية" and its translation "the Age of Ignorance".
+3. The phrase "أهل الفتن" refers to people who incite civil strife, a concept with specific historical resonance. The gap is "أهل الفتن" and its translation "people of discord".
+4. The idiom "ضرب في الأرض" literally means "struck in the land" but culturally means "to travel extensively". The gap is the idiom and its translation.
+5. The term "ديوان" refers to a specific type of administrative office or collection of poetry, depending on context. The gap is the term and its translation.
+
+**Non-examples (do NOT mark as gaps):**
+- Generic words like "man", "house", "walk" unless used in a culturally loaded way.
+- Segments that are simply long sentences or the entire translation.
+- Phrases that have a clear, direct English equivalent with no cultural or historical ambiguity.
 
 Original Arabic Text:
 ```
@@ -160,7 +184,7 @@ Refined English Translation:
 ```
 
 **INSTRUCTIONS FOR ANALYSIS:**
-1.  **Identify All Gaps:** Thoroughly scan the original text and translation to find **all** instances representing a cultural gap as defined above.
+1.  **Identify All Gaps:** Carefully scan the original text and translation to find **all** instances representing a cultural gap as defined above. Be thorough and err on the side of including more specific, challenging segments.
 2.  **Extract Verbatim Segments:** For each identified gap, you **MUST** extract the corresponding text segments *exactly* as they appear:
     *   `sourceText`: The **exact VERBATIM (no transliteration) phrase or term** from the *Original Arabic Text* that represents the gap.
     *   `targetText`: The **exact corresponding phrase or term** from the *Refined English Translation* where the gap is addressed or translated.
