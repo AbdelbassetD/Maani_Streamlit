@@ -66,7 +66,7 @@ For more technical details on how each component works, click [here](https://git
 -   `app.py`: The main Streamlit application file (UI and flow control).
 -   `requirements.txt`: Lists Python dependencies.
 -   `shared_types.py`: Defines Python data classes for structuring translation results.
--   `.env`: Stores the API key (should not be committed to Git).
+-   `.env.example`: Stores the API key (you should rename it to .env).
 -   `README.md`: This file.
 -   `config/`: Contains configuration files.
     -   `__init__.py`
