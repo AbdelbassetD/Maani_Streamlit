@@ -16,6 +16,15 @@ For more technical details on how each component works, click [here](https://git
 -   **Linguistic Nuances:** Explains specific terms or phrases in the refined translation that have cultural or linguistic significance (with highlighting).
 -   **Interactive UI:** Built with Streamlit for ease of use.
 
+## Proposed Enhancements & Research Roadmap
+
+-   **Experiment tracking & reproducibility:** Log prompts, model settings, timestamps, and outputs alongside user edits to build a reproducible research dataset (CSV/JSONL export).
+-   **Comparative model benchmarking:** Add a selector to run multiple models/temperature settings side-by-side with aggregated evaluation metrics for systematic studies.
+-   **Alignment visualization:** Provide token/phrase alignment between Arabic and English to support fine-grained linguistic analysis and classroom use.
+-   **Annotation workflow:** Allow expert annotation and adjudication of cultural gaps/nuances, exporting labeled data for downstream studies.
+-   **Corpus-scale batch processing:** Enable CSV uploads for batch translation and analysis, plus summary statistics across a corpus.
+-   **Interactive filtering & analytics:** Add filters by category, severity, or evaluation score to explore patterns in gaps/nuances.
+
 ## Setup
 
 1. **Clone the repository (or ensure you have the files):**
