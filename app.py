@@ -10,6 +10,7 @@ import colorsys # Import the colorsys module
 import json # For feedback logging and download
 import os # For feedback logging path
 import re
+from collections import Counter
 from datetime import datetime # For feedback timestamp
 from typing import List, Tuple, Optional, Dict
 import pandas as pd # For evaluation bar chart
@@ -161,7 +162,9 @@ ARABIC_WORD_PATTERN = re.compile(r"[\u0600-\u06FF]+")
 NUMBER_PATTERN = re.compile(r"\d+")
 WORD_PATTERN = re.compile(r"\w+")
 
-def quality_status_icon(is_ok: bool) -> str:
+def quality_status_icon(is_ok: Optional[bool]) -> str:
+    if is_ok is None:
+        return "⚪"
     return "🟢" if is_ok else "🟠"
 
 def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Dict[str, object]]:
@@ -173,11 +176,11 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[D
     source_count = len(source_tokens)
     target_count = len(target_tokens)
     length_ratio = target_count / source_count if source_count else None
-    length_ok = False if source_count == 0 else QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
+    length_ok = None if source_count == 0 else QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
 
     source_numbers = NUMBER_PATTERN.findall(source_text)
     target_numbers = NUMBER_PATTERN.findall(translated_text)
-    numbers_ok = sorted(source_numbers) == sorted(target_numbers)
+    numbers_ok = Counter(source_numbers) == Counter(target_numbers)
 
     arabic_chars = ARABIC_CHAR_PATTERN.findall(translated_text)
     arabic_count = len(arabic_chars)
