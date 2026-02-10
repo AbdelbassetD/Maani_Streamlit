@@ -183,7 +183,7 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     if not source_text or not translated_text:
         return None
 
-    # Use Arabic-only tokens for the source and general word tokens for English output to keep counts script-aware.
+    # Use Arabic-only tokens for the source and general word tokens for English output to align with heuristic ratio bounds.
     source_tokens = ARABIC_WORD_PATTERN.findall(source_text)
     target_tokens = WORD_PATTERN.findall(translated_text)
     source_count = len(source_tokens)
@@ -192,6 +192,7 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     min_ratio, max_ratio = QUALITY_RATIO_RANGE
     length_ok = None if length_ratio is None else min_ratio <= length_ratio <= max_ratio
 
+    # Remove common comma separators for consistent numeral matching across scripts.
     normalized_source = source_text.replace(",", "").replace("،", "")
     normalized_target = translated_text.replace(",", "").replace("،", "")
     source_numbers = NUMBER_PATTERN.findall(normalized_source)
@@ -886,7 +887,7 @@ if st.session_state.translation_result:
                                     f"Source: {', '.join(checks['source_numbers'])} | Target: {target_numbers_label}"
                                 )
                             else:
-                                st.markdown("🔵 **Numeral Preservation:** No numerals detected")
+                                st.markdown(f"{quality_status_icon(None)} **Numeral Preservation:** No numerals detected")
                             st.markdown(
                                 f"{quality_status_icon(checks['arabic_ok'])} **Residual Arabic Tokens:** {checks['arabic_count']}"
                             )
