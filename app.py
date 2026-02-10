@@ -9,8 +9,10 @@ import asyncio
 import colorsys # Import the colorsys module
 import json # For feedback logging and download
 import os # For feedback logging path
+import re
+from collections import Counter
 from datetime import datetime # For feedback timestamp
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, TypedDict
 import pandas as pd # For evaluation bar chart
 import dataclasses # Import dataclasses module
 import logging # Added for logging
@@ -153,6 +155,65 @@ def display_evaluation_scores(label: str, scores):
     cols[1].metric(f"{label} Fluency", f"{scores.fluency}/10")
     cols[2].metric(f"{label} Nuance", f"{scores.nuance}/10")
     cols[3].metric(f"{label} Cultural Fidelity", f"{scores.culturalFidelity}/10")
+
+QUALITY_RATIO_RANGE = (0.6, 1.8)  # Flags extreme compression/expansion; tune with evaluation data.
+RESULT_COLUMN_WIDTHS = (1, 2, 1)
+ARABIC_CHAR_PATTERN = re.compile(r"[\u0600-\u06FF]")
+ARABIC_WORD_PATTERN = re.compile(r"[\u0600-\u06FF]+")
+NUMBER_PATTERN = re.compile(r"\d+")
+WORD_PATTERN = re.compile(r"\w+")
+
+def quality_status_icon(is_ok: Optional[bool]) -> str:
+    if is_ok is None:
+        return "⚪"
+    return "🟢" if is_ok else "🟠"
+
+class QualityCheckResult(TypedDict):
+    source_token_count: int
+    target_token_count: int
+    length_ratio: Optional[float]
+    length_ok: Optional[bool]
+    source_numbers: List[str]
+    target_numbers: List[str]
+    numbers_ok: bool
+    arabic_count: int
+    arabic_ok: bool
+
+def compute_quality_checks(source_text: str, translated_text: str) -> Optional[QualityCheckResult]:
+    if not source_text or not translated_text:
+        return None
+
+    # Use Arabic-only tokens for the source and general word tokens for English output to align with heuristic ratio bounds.
+    source_tokens = ARABIC_WORD_PATTERN.findall(source_text)
+    target_tokens = WORD_PATTERN.findall(translated_text)
+    source_count = len(source_tokens)
+    target_count = len(target_tokens)
+    length_ratio = target_count / source_count if source_count > 0 else None
+    min_ratio, max_ratio = QUALITY_RATIO_RANGE
+    length_ok = None if length_ratio is None else min_ratio <= length_ratio <= max_ratio
+
+    # Remove common comma separators for consistent numeral matching across scripts.
+    normalized_source = source_text.replace(",", "").replace("،", "")
+    normalized_target = translated_text.replace(",", "").replace("،", "")
+    source_numbers = NUMBER_PATTERN.findall(normalized_source)
+    target_numbers = NUMBER_PATTERN.findall(normalized_target)
+    numbers_ok = Counter(source_numbers) == Counter(target_numbers)
+
+    arabic_chars = ARABIC_CHAR_PATTERN.findall(translated_text)
+    arabic_count = len(arabic_chars)
+    arabic_ok = arabic_count == 0
+
+    return {
+        "source_token_count": source_count,
+        "target_token_count": target_count,
+        "length_ratio": length_ratio,
+        "length_ok": length_ok,
+        "source_numbers": source_numbers,
+        "target_numbers": target_numbers,
+        "numbers_ok": numbers_ok,
+        "arabic_count": arabic_count,
+        "arabic_ok": arabic_ok,
+    }
 
 # Simple highlighter function (replace with more robust solution if needed)
 def highlight_text(text: str, locations: List[Tuple[TextLocation, str, str]]) -> str:
@@ -755,9 +816,9 @@ if st.session_state.translation_result:
 
         # If highlight_type_for_details is "None" or something else, nothing is shown for this row.
 
-        # --- Row 3 (Previously Row 2): Context & Evaluation --- #
+        # --- Row 3 (Previously Row 2): Context, Evaluation, QA --- #
         if result.contextAnalysis or result.evaluation:
-            col1_ctx, col2_eval = st.columns([1, 2])
+            col1_ctx, col2_eval, col3_qa = st.columns(RESULT_COLUMN_WIDTHS)
             with col1_ctx:
                 with st.container(border=True):
                     st.markdown("##### Context Analysis")
@@ -780,17 +841,59 @@ if st.session_state.translation_result:
                 with st.container(border=True):
                     st.markdown("##### Comparative Evaluation")
                     if result.evaluation:
-                         eval_data = result.evaluation
-                         st.metric("Preferred Translation", eval_data.preferredTranslation.capitalize(), f"{eval_data.preferenceConfidence}% Confidence")
-                         st.markdown("**Scores (1-10):**")
-                         display_evaluation_scores("Initial", eval_data.initialTranslation)
-                         display_evaluation_scores("Refined", eval_data.refinedTranslation)
-                         with st.expander("Detailed Assessments"):
-                             st.markdown(f"**Accuracy:** {eval_data.accuracyAssessment}")
-                             st.markdown(f"**Fluency:** {eval_data.fluencyAssessment}")
-                             st.markdown(f"**Cultural Fidelity:** {eval_data.culturalFidelityAssessment}")
-                         if eval_data.generatedTime:
-                              st.caption(f"Generated in {eval_data.generatedTime} ms")
+                        eval_data = result.evaluation
+                        st.metric(
+                            "Preferred Translation",
+                            eval_data.preferredTranslation.capitalize(),
+                            f"{eval_data.preferenceConfidence}% Confidence"
+                        )
+                        st.markdown("**Scores (1-10):**")
+                        display_evaluation_scores("Initial", eval_data.initialTranslation)
+                        display_evaluation_scores("Refined", eval_data.refinedTranslation)
+                        with st.expander("Detailed Assessments"):
+                            st.markdown(f"**Accuracy:** {eval_data.accuracyAssessment}")
+                            st.markdown(f"**Fluency:** {eval_data.fluencyAssessment}")
+                            st.markdown(f"**Cultural Fidelity:** {eval_data.culturalFidelityAssessment}")
+                        if eval_data.generatedTime:
+                            st.caption(f"Generated in {eval_data.generatedTime} ms")
+                    else:
+                        st.markdown("_Processing..._")
+
+            with col3_qa:
+                with st.container(border=True):
+                    st.markdown("##### QA Checks")
+                    if result.refinedTranslation and result.refinedTranslation.text and result.inputText:
+                        checks = compute_quality_checks(result.inputText.arabicText, result.refinedTranslation.text)
+                        if checks:
+                            length_ratio = checks["length_ratio"]
+                            length_ratio_label = f"{length_ratio:.2f}" if length_ratio is not None else "N/A"
+                            st.markdown(
+                                f"{quality_status_icon(checks['length_ok'])} **Length Ratio:** {length_ratio_label} (target/source)"
+                            )
+                            st.caption(
+                                f"{checks['source_token_count']} source tokens | {checks['target_token_count']} target tokens"
+                            )
+                            if checks["source_numbers"]:
+                                numeral_status = "Matched" if checks["numbers_ok"] else "Review"
+                                st.markdown(
+                                    f"{quality_status_icon(checks['numbers_ok'])} **Numeral Preservation:** {numeral_status}"
+                                )
+                                target_numbers_label = (
+                                    ", ".join(checks["target_numbers"])
+                                    if checks["target_numbers"]
+                                    else "None"
+                                )
+                                st.caption(
+                                    f"Source: {', '.join(checks['source_numbers'])} | Target: {target_numbers_label}"
+                                )
+                            else:
+                                st.markdown(f"{quality_status_icon(None)} **Numeral Preservation:** No numerals detected")
+                            st.markdown(
+                                f"{quality_status_icon(checks['arabic_ok'])} **Residual Arabic Tokens:** {checks['arabic_count']}"
+                            )
+                            st.caption("Heuristic QA checks for quick review; flags are not definitive.")
+                        else:
+                            st.markdown("_Processing..._")
                     else:
                         st.markdown("_Processing..._")
 
