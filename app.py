@@ -12,7 +12,7 @@ import os # For feedback logging path
 import re
 from collections import Counter
 from datetime import datetime # For feedback timestamp
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, TypedDict
 import pandas as pd # For evaluation bar chart
 import dataclasses # Import dataclasses module
 import logging # Added for logging
@@ -157,6 +157,7 @@ def display_evaluation_scores(label: str, scores):
     cols[3].metric(f"{label} Cultural Fidelity", f"{scores.culturalFidelity}/10")
 
 QUALITY_RATIO_RANGE = (0.6, 1.8)
+RESULT_COLUMN_WIDTHS = (1, 2, 1)
 ARABIC_CHAR_PATTERN = re.compile(r"[\u0600-\u06FF]")
 ARABIC_WORD_PATTERN = re.compile(r"[\u0600-\u06FF]+")
 NUMBER_PATTERN = re.compile(r"\d+")
@@ -167,7 +168,18 @@ def quality_status_icon(is_ok: Optional[bool]) -> str:
         return "⚪"
     return "🟢" if is_ok else "🟠"
 
-def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Dict[str, object]]:
+class QualityCheckResult(TypedDict):
+    source_count: int
+    target_count: int
+    length_ratio: Optional[float]
+    length_ok: Optional[bool]
+    source_numbers: List[str]
+    target_numbers: List[str]
+    numbers_ok: bool
+    arabic_count: int
+    arabic_ok: bool
+
+def compute_quality_checks(source_text: str, translated_text: str) -> Optional[QualityCheckResult]:
     if not source_text or not translated_text:
         return None
 
@@ -175,7 +187,7 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[D
     target_tokens = WORD_PATTERN.findall(translated_text)
     source_count = len(source_tokens)
     target_count = len(target_tokens)
-    length_ratio = target_count / source_count if source_count else None
+    length_ratio = target_count / source_count if source_count > 0 else None
     length_ok = None if source_count == 0 else QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
 
     source_numbers = NUMBER_PATTERN.findall(source_text)
@@ -801,7 +813,7 @@ if st.session_state.translation_result:
 
         # --- Row 3 (Previously Row 2): Context, Evaluation, QA --- #
         if result.contextAnalysis or result.evaluation:
-            col1_ctx, col2_eval, col3_qa = st.columns([1, 2, 1])
+            col1_ctx, col2_eval, col3_qa = st.columns(RESULT_COLUMN_WIDTHS)
             with col1_ctx:
                 with st.container(border=True):
                     st.markdown("##### Context Analysis")
