@@ -183,12 +183,13 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     if not source_text or not translated_text:
         return None
 
-    source_tokens = ARABIC_WORD_PATTERN.findall(source_text)
-    target_tokens = WORD_PATTERN.findall(translated_text)
-    source_count = len(source_tokens)
-    target_count = len(target_tokens)
+    source_words = ARABIC_WORD_PATTERN.findall(source_text)
+    target_words = WORD_PATTERN.findall(translated_text)
+    source_count = len(source_words)
+    target_count = len(target_words)
     length_ratio = target_count / source_count if source_count > 0 else None
-    length_ok = None if source_count == 0 else QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
+    min_ratio, max_ratio = QUALITY_RATIO_RANGE
+    length_ok = None if source_count == 0 else min_ratio <= length_ratio <= max_ratio
 
     source_numbers = NUMBER_PATTERN.findall(source_text)
     target_numbers = NUMBER_PATTERN.findall(translated_text)
