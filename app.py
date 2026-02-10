@@ -156,7 +156,7 @@ def display_evaluation_scores(label: str, scores):
     cols[2].metric(f"{label} Nuance", f"{scores.nuance}/10")
     cols[3].metric(f"{label} Cultural Fidelity", f"{scores.culturalFidelity}/10")
 
-QUALITY_RATIO_RANGE = (0.6, 1.8)  # Heuristic Arabic-to-English length ratio range; tune with evaluation data.
+QUALITY_RATIO_RANGE = (0.6, 1.8)  # Flags extreme compression/expansion; tune with evaluation data.
 RESULT_COLUMN_WIDTHS = (1, 2, 1)
 ARABIC_CHAR_PATTERN = re.compile(r"[\u0600-\u06FF]")
 ARABIC_WORD_PATTERN = re.compile(r"[\u0600-\u06FF]+")
