@@ -172,7 +172,7 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[D
     target_tokens = WORD_PATTERN.findall(translated_text)
     source_count = len(source_tokens)
     target_count = len(target_tokens)
-    length_ratio = target_count / source_count if source_count else 0.0
+    length_ratio = target_count / source_count if source_count else None
     length_ok = False if source_count == 0 else QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
 
     source_numbers = NUMBER_PATTERN.findall(source_text)
@@ -845,8 +845,10 @@ if st.session_state.translation_result:
                     if result.refinedTranslation and result.refinedTranslation.text and result.inputText:
                         checks = compute_quality_checks(result.inputText.arabicText, result.refinedTranslation.text)
                         if checks:
+                            length_ratio = checks["length_ratio"]
+                            length_ratio_label = f"{length_ratio:.2f}" if length_ratio is not None else "N/A"
                             st.markdown(
-                                f"{quality_status_icon(checks['length_ok'])} **Length Ratio:** {checks['length_ratio']:.2f} (target/source)"
+                                f"{quality_status_icon(checks['length_ok'])} **Length Ratio:** {length_ratio_label} (target/source)"
                             )
                             st.caption(f"{checks['source_count']} source tokens | {checks['target_count']} target tokens")
                             if checks["source_numbers"]:
@@ -854,8 +856,13 @@ if st.session_state.translation_result:
                                 st.markdown(
                                     f"{quality_status_icon(checks['numbers_ok'])} **Numeral Preservation:** {numeral_status}"
                                 )
+                                target_numbers_label = (
+                                    ", ".join(checks["target_numbers"])
+                                    if checks["target_numbers"]
+                                    else "None"
+                                )
                                 st.caption(
-                                    f"Source: {', '.join(checks['source_numbers'])} | Target: {', '.join(checks['target_numbers']) or 'None'}"
+                                    f"Source: {', '.join(checks['source_numbers'])} | Target: {target_numbers_label}"
                                 )
                             else:
                                 st.markdown("🔵 **Numeral Preservation:** No numerals detected")
