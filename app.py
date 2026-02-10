@@ -169,8 +169,8 @@ def quality_status_icon(is_ok: Optional[bool]) -> str:
     return "🟢" if is_ok else "🟠"
 
 class QualityCheckResult(TypedDict):
-    source_count: int
-    target_count: int
+    source_token_count: int
+    target_token_count: int
     length_ratio: Optional[float]
     length_ok: Optional[bool]
     source_numbers: List[str]
@@ -183,10 +183,10 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     if not source_text or not translated_text:
         return None
 
-    source_words = ARABIC_WORD_PATTERN.findall(source_text)
-    target_words = WORD_PATTERN.findall(translated_text)
-    source_count = len(source_words)
-    target_count = len(target_words)
+    source_tokens = ARABIC_WORD_PATTERN.findall(source_text)
+    target_tokens = WORD_PATTERN.findall(translated_text)
+    source_count = len(source_tokens)
+    target_count = len(target_tokens)
     length_ratio = target_count / source_count if source_count > 0 else None
     min_ratio, max_ratio = QUALITY_RATIO_RANGE
     length_ok = None if source_count == 0 else min_ratio <= length_ratio <= max_ratio
@@ -200,8 +200,8 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     arabic_ok = arabic_count == 0
 
     return {
-        "source_count": source_count,
-        "target_count": target_count,
+        "source_token_count": source_count,
+        "target_token_count": target_count,
         "length_ratio": length_ratio,
         "length_ok": length_ok,
         "source_numbers": source_numbers,
@@ -866,7 +866,9 @@ if st.session_state.translation_result:
                             st.markdown(
                                 f"{quality_status_icon(checks['length_ok'])} **Length Ratio:** {length_ratio_label} (target/source)"
                             )
-                            st.caption(f"{checks['source_count']} source tokens | {checks['target_count']} target tokens")
+                            st.caption(
+                                f"{checks['source_token_count']} source tokens | {checks['target_token_count']} target tokens"
+                            )
                             if checks["source_numbers"]:
                                 numeral_status = "Matched" if checks["numbers_ok"] else "Review"
                                 st.markdown(
