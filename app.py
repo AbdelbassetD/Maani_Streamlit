@@ -157,6 +157,7 @@ def display_evaluation_scores(label: str, scores):
 
 QUALITY_RATIO_RANGE = (0.6, 1.8)
 ARABIC_CHAR_PATTERN = re.compile(r"[\u0600-\u06FF]")
+ARABIC_WORD_PATTERN = re.compile(r"[\u0600-\u06FF]+")
 NUMBER_PATTERN = re.compile(r"\d+")
 WORD_PATTERN = re.compile(r"\w+")
 
@@ -167,16 +168,16 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[D
     if not source_text or not translated_text:
         return None
 
-    source_tokens = WORD_PATTERN.findall(source_text)
+    source_tokens = ARABIC_WORD_PATTERN.findall(source_text)
     target_tokens = WORD_PATTERN.findall(translated_text)
     source_count = len(source_tokens)
     target_count = len(target_tokens)
     length_ratio = target_count / source_count if source_count else 0.0
-    length_ok = QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
+    length_ok = False if source_count == 0 else QUALITY_RATIO_RANGE[0] <= length_ratio <= QUALITY_RATIO_RANGE[1]
 
     source_numbers = NUMBER_PATTERN.findall(source_text)
     target_numbers = NUMBER_PATTERN.findall(translated_text)
-    numbers_ok = source_numbers == target_numbers
+    numbers_ok = sorted(source_numbers) == sorted(target_numbers)
 
     arabic_chars = ARABIC_CHAR_PATTERN.findall(translated_text)
     arabic_count = len(arabic_chars)
