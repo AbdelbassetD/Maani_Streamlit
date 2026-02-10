@@ -156,7 +156,7 @@ def display_evaluation_scores(label: str, scores):
     cols[2].metric(f"{label} Nuance", f"{scores.nuance}/10")
     cols[3].metric(f"{label} Cultural Fidelity", f"{scores.culturalFidelity}/10")
 
-QUALITY_RATIO_RANGE = (0.6, 1.8)  # Heuristic Arabic-to-English length ratio range
+QUALITY_RATIO_RANGE = (0.6, 1.8)  # Heuristic Arabic-to-English length ratio range; tune with evaluation data.
 RESULT_COLUMN_WIDTHS = (1, 2, 1)
 ARABIC_CHAR_PATTERN = re.compile(r"[\u0600-\u06FF]")
 ARABIC_WORD_PATTERN = re.compile(r"[\u0600-\u06FF]+")
@@ -183,7 +183,7 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     if not source_text or not translated_text:
         return None
 
-    # Use Arabic-only tokens for the source and general word tokens for English output.
+    # Use Arabic-only tokens for the source and general word tokens for English output to keep counts script-aware.
     source_tokens = ARABIC_WORD_PATTERN.findall(source_text)
     target_tokens = WORD_PATTERN.findall(translated_text)
     source_count = len(source_tokens)
@@ -192,8 +192,10 @@ def compute_quality_checks(source_text: str, translated_text: str) -> Optional[Q
     min_ratio, max_ratio = QUALITY_RATIO_RANGE
     length_ok = None if length_ratio is None else min_ratio <= length_ratio <= max_ratio
 
-    source_numbers = NUMBER_PATTERN.findall(source_text)
-    target_numbers = NUMBER_PATTERN.findall(translated_text)
+    normalized_source = source_text.replace(",", "").replace("،", "")
+    normalized_target = translated_text.replace(",", "").replace("،", "")
+    source_numbers = NUMBER_PATTERN.findall(normalized_source)
+    target_numbers = NUMBER_PATTERN.findall(normalized_target)
     numbers_ok = Counter(source_numbers) == Counter(target_numbers)
 
     arabic_chars = ARABIC_CHAR_PATTERN.findall(translated_text)
